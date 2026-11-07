@@ -19,6 +19,15 @@ All examples are synthetic. No Azure credentials or customer content are include
 | Review topology, authentication, and data flow | [Architecture](docs/architecture.md) |
 | Understand what each measurement actually means | [Metrics](docs/metrics.md) |
 | Run tests or inspect validation evidence | [Testing](docs/testing.md) |
+| See measured Azure results, including the 1,700-record recovery test | [Live validation](docs/live-validation.md) |
+
+Clone [the public repository](https://github.com/patmeh1/azure-llm-batch-starter)
+or download a source archive from its Releases page:
+
+```powershell
+git clone https://github.com/patmeh1/azure-llm-batch-starter.git
+Set-Location azure-llm-batch-starter
+```
 
 ## Offline demo: no Azure sign-in required
 

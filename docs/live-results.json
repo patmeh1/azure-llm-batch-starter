@@ -1,0 +1,880 @@
+{
+  "measured_date_utc": "2026-11-07",
+  "input_policy": "Entirely generated support-ticket text; no private record bodies, account identifiers, endpoints, or remote IDs exported.",
+  "limits": [
+    "Single observations, not a throughput SLA.",
+    "Burst experiments are not sustained-throughput benchmarks.",
+    "Reported token costs exclude infrastructure and missing usage; they are not invoices.",
+    "The 1700-record application elapsed includes workflow recovery; its short recovery-orchestration interval is not model processing time.",
+    "Initial large-input experiments used approximately 72090 estimated tokens. The final calibrated profile targets 74572 estimated tokens."
+  ],
+  "local_validation_environment": {
+    "python": "3.12.10",
+    "os": "Windows",
+    "packages": {
+      "openai": "2.54.0",
+      "azure-functions-durable": "1.7.0",
+      "durabletask-azuremanaged": "1.12.0",
+      "tiktoken": "0.14.0",
+      "streamlit": "1.66.1",
+      "filelock": "4.2.5"
+    }
+  },
+  "experiments": [
+    {
+      "scenario": "compact-sequential-60rpm",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "sequential",
+      "status": "succeeded",
+      "record_count": 100,
+      "succeeded": 100,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 104.008233,
+      "errors_429": 0,
+      "http_attempts": 100,
+      "input_tokens": 14862,
+      "output_tokens": 6607,
+      "cached_tokens": 0,
+      "reasoning_tokens": 2630,
+      "label_accuracy": 0.99,
+      "accuracy_denominator": 100,
+      "priced_usage_estimate_usd": 0.0449658,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 104.008233,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        179,
+        187
+      ],
+      "reported_input_tokens_per_response_range": [
+        145,
+        153
+      ]
+    },
+    {
+      "scenario": "compact-parallel-60rpm",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "succeeded",
+      "record_count": 100,
+      "succeeded": 100,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 100.260646,
+      "errors_429": 0,
+      "http_attempts": 100,
+      "input_tokens": 14862,
+      "output_tokens": 6637,
+      "cached_tokens": 0,
+      "reasoning_tokens": 2673,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 100,
+      "priced_usage_estimate_usd": 0.0451143,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 100.260646,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        179,
+        187
+      ],
+      "reported_input_tokens_per_response_range": [
+        145,
+        153
+      ]
+    },
+    {
+      "scenario": "compact-sequential-120rpm",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "sequential",
+      "status": "succeeded",
+      "record_count": 100,
+      "succeeded": 100,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 90.343213,
+      "errors_429": 0,
+      "http_attempts": 100,
+      "input_tokens": 14862,
+      "output_tokens": 6591,
+      "cached_tokens": 0,
+      "reasoning_tokens": 2618,
+      "label_accuracy": 0.99,
+      "accuracy_denominator": 100,
+      "priced_usage_estimate_usd": 0.0448866,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 90.343213,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 120,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        179,
+        187
+      ],
+      "reported_input_tokens_per_response_range": [
+        145,
+        153
+      ]
+    },
+    {
+      "scenario": "compact-parallel-120rpm",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "succeeded",
+      "record_count": 100,
+      "succeeded": 100,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 50.689926,
+      "errors_429": 0,
+      "http_attempts": 100,
+      "input_tokens": 14862,
+      "output_tokens": 6481,
+      "cached_tokens": 0,
+      "reasoning_tokens": 2513,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 100,
+      "priced_usage_estimate_usd": 0.044342099999999995,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 50.689926,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 120,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        179,
+        187
+      ],
+      "reported_input_tokens_per_response_range": [
+        145,
+        153
+      ]
+    },
+    {
+      "scenario": "large-150k-tpm-concurrency-1",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "sequential",
+      "status": "partial_failure",
+      "record_count": 6,
+      "succeeded": 3,
+      "failed": 3,
+      "pending": 0,
+      "elapsed_seconds": 8.742865,
+      "errors_429": 3,
+      "http_attempts": 6,
+      "input_tokens": 216173,
+      "output_tokens": 175,
+      "cached_tokens": 143872,
+      "reasoning_tokens": 53,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 3,
+      "priced_usage_estimate_usd": 0.072384015,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": false,
+      "full_observed_elapsed_seconds": 8.742865,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 1,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": true
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        72089,
+        72093
+      ],
+      "reported_input_tokens_per_response_range": [
+        72056,
+        72059
+      ]
+    },
+    {
+      "scenario": "large-150k-tpm-concurrency-2",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "partial_failure",
+      "record_count": 6,
+      "succeeded": 2,
+      "failed": 4,
+      "pending": 0,
+      "elapsed_seconds": 5.478888,
+      "errors_429": 4,
+      "http_attempts": 6,
+      "input_tokens": 144115,
+      "output_tokens": 124,
+      "cached_tokens": 71936,
+      "reasoning_tokens": 42,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 2,
+      "priced_usage_estimate_usd": 0.066096195,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": false,
+      "full_observed_elapsed_seconds": 5.478888,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": true
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        72089,
+        72093
+      ],
+      "reported_input_tokens_per_response_range": [
+        72056,
+        72059
+      ]
+    },
+    {
+      "scenario": "large-150k-tpm-concurrency-5",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "partial_failure",
+      "record_count": 6,
+      "succeeded": 3,
+      "failed": 3,
+      "pending": 0,
+      "elapsed_seconds": 5.506234,
+      "errors_429": 3,
+      "http_attempts": 6,
+      "input_tokens": 216173,
+      "output_tokens": 180,
+      "cached_tokens": 215808,
+      "reasoning_tokens": 57,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 3,
+      "priced_usage_estimate_usd": 0.018996284999999998,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": false,
+      "full_observed_elapsed_seconds": 5.506234,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": true
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        72089,
+        72093
+      ],
+      "reported_input_tokens_per_response_range": [
+        72056,
+        72059
+      ]
+    },
+    {
+      "scenario": "large-150k-tpm-varied-prefix",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "partial_failure",
+      "record_count": 6,
+      "succeeded": 2,
+      "failed": 4,
+      "pending": 0,
+      "elapsed_seconds": 5.184499,
+      "errors_429": 4,
+      "http_attempts": 6,
+      "input_tokens": 144135,
+      "output_tokens": 109,
+      "cached_tokens": 0,
+      "reasoning_tokens": 37,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 2,
+      "priced_usage_estimate_usd": 0.119450925,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "usage_complete": false,
+      "full_observed_elapsed_seconds": 5.184499,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": true
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        72100,
+        72104
+      ],
+      "reported_input_tokens_per_response_range": [
+        72066,
+        72069
+      ]
+    },
+    {
+      "scenario": "large-600k-tpm-concurrency-5",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "succeeded",
+      "record_count": 6,
+      "succeeded": 6,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 6.566264,
+      "errors_429": 0,
+      "http_attempts": 6,
+      "input_tokens": 432340,
+      "output_tokens": 355,
+      "cached_tokens": 137216,
+      "reasoning_tokens": 122,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 6,
+      "priced_usage_estimate_usd": 0.25655487,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "600",
+          "tokens_per_minute": "600000"
+        }
+      ],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 6.566264,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": true
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        72089,
+        72093
+      ],
+      "reported_input_tokens_per_response_range": [
+        72055,
+        72059
+      ]
+    },
+    {
+      "scenario": "confirmed-transient-recovery",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "succeeded",
+      "record_count": 3,
+      "succeeded": 3,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 5.585581,
+      "errors_429": 0,
+      "http_attempts": 3,
+      "input_tokens": 216167,
+      "output_tokens": 205,
+      "cached_tokens": 215808,
+      "reasoning_tokens": 92,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 3,
+      "priced_usage_estimate_usd": 0.019115085,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "600",
+          "tokens_per_minute": "600000"
+        }
+      ],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 5.585581,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": true
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        72089,
+        72090
+      ],
+      "reported_input_tokens_per_response_range": [
+        72055,
+        72056
+      ]
+    },
+    {
+      "scenario": "calibrated-double-token-online",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "parallel",
+      "status": "succeeded",
+      "record_count": 6,
+      "succeeded": 6,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 8.525696,
+      "errors_429": 0,
+      "http_attempts": 6,
+      "input_tokens": 447214,
+      "output_tokens": 310,
+      "cached_tokens": 367872,
+      "reasoning_tokens": 73,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 6,
+      "priced_usage_estimate_usd": 0.09734108999999999,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "600",
+          "tokens_per_minute": "600000"
+        }
+      ],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 8.525696,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 5,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": true
+      },
+      "partitions": [],
+      "estimated_input_tokens_per_attempt_range": [
+        74568,
+        74572
+      ],
+      "reported_input_tokens_per_response_range": [
+        74534,
+        74538
+      ]
+    },
+    {
+      "scenario": "local-batch-resume-with-observer-pause",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "batch",
+      "status": "succeeded",
+      "record_count": 10,
+      "succeeded": 10,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 5715.785238,
+      "errors_429": 0,
+      "http_attempts": 0,
+      "input_tokens": 1485,
+      "output_tokens": 657,
+      "cached_tokens": 0,
+      "reasoning_tokens": 254,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 10,
+      "priced_usage_estimate_usd": 0.0022386374999999997,
+      "observed_rate_limits": [],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 5715.785238,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [
+        {
+          "status": "collected",
+          "service_status": "completed",
+          "estimated_input_tokens": 1825,
+          "service_elapsed_seconds": 2737,
+          "request_counts": {
+            "completed": 10,
+            "failed": 0,
+            "total": 10
+          }
+        }
+      ],
+      "estimated_input_tokens_per_attempt_range": null,
+      "reported_input_tokens_per_response_range": null
+    },
+    {
+      "scenario": "cloud-smoke-10",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "batch",
+      "status": "succeeded",
+      "record_count": 10,
+      "succeeded": 10,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 493.294216,
+      "errors_429": 0,
+      "http_attempts": 0,
+      "input_tokens": 1505,
+      "output_tokens": 652,
+      "cached_tokens": 0,
+      "reasoning_tokens": 252,
+      "label_accuracy": 0.9,
+      "accuracy_denominator": 10,
+      "priced_usage_estimate_usd": 0.0022345125,
+      "observed_rate_limits": null,
+      "usage_complete": null,
+      "full_observed_elapsed_seconds": 503.278617,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [
+        {
+          "status": "collected",
+          "service_status": "completed",
+          "estimated_input_tokens": 1845,
+          "service_elapsed_seconds": 471,
+          "request_counts": {
+            "completed": 10,
+            "failed": 0,
+            "total": 10
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "cloud-compact-100",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "batch",
+      "status": "succeeded",
+      "record_count": 100,
+      "succeeded": 100,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 494.361479,
+      "errors_429": 0,
+      "http_attempts": 0,
+      "input_tokens": 14862,
+      "output_tokens": 6568,
+      "cached_tokens": 0,
+      "reasoning_tokens": 2561,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 100,
+      "priced_usage_estimate_usd": 0.022386375,
+      "observed_rate_limits": [],
+      "usage_complete": null,
+      "full_observed_elapsed_seconds": 506.838711,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [
+        {
+          "status": "collected",
+          "service_status": "completed",
+          "estimated_input_tokens": 18262,
+          "service_elapsed_seconds": 415,
+          "request_counts": {
+            "completed": 100,
+            "failed": 0,
+            "total": 100
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "cloud-initial-large-6",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "batch",
+      "status": "succeeded",
+      "record_count": 6,
+      "succeeded": 6,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 806.343781,
+      "errors_429": 0,
+      "http_attempts": 0,
+      "input_tokens": 432340,
+      "output_tokens": 336,
+      "cached_tokens": 287744,
+      "reasoning_tokens": 108,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 6,
+      "priced_usage_estimate_usd": 0.07234689,
+      "observed_rate_limits": [],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 807.859236,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [
+        {
+          "status": "collected",
+          "service_status": "completed",
+          "estimated_input_tokens": 432544,
+          "service_elapsed_seconds": 507,
+          "request_counts": {
+            "completed": 6,
+            "failed": 0,
+            "total": 6
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "cloud-calibrated-double-token-6",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "batch",
+      "status": "succeeded",
+      "record_count": 6,
+      "succeeded": 6,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 492.908751,
+      "errors_429": 0,
+      "http_attempts": 0,
+      "input_tokens": 447214,
+      "output_tokens": 340,
+      "cached_tokens": 221952,
+      "reasoning_tokens": 106,
+      "label_accuracy": 1.0,
+      "accuracy_denominator": 6,
+      "priced_usage_estimate_usd": 0.102917595,
+      "observed_rate_limits": [],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 493.397935,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [
+        {
+          "status": "collected",
+          "service_status": "completed",
+          "estimated_input_tokens": 447418,
+          "service_elapsed_seconds": 379,
+          "request_counts": {
+            "completed": 6,
+            "failed": 0,
+            "total": 6
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "cloud-scale-1700-with-workflow-recovery",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "batch",
+      "status": "succeeded",
+      "record_count": 1700,
+      "succeeded": 1700,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 1713.683896,
+      "errors_429": 0,
+      "http_attempts": 0,
+      "input_tokens": 252648,
+      "output_tokens": 111403,
+      "cached_tokens": 0,
+      "reasoning_tokens": 43446,
+      "label_accuracy": 0.9952941176470588,
+      "accuracy_denominator": 1700,
+      "priced_usage_estimate_usd": 0.37993972499999995,
+      "observed_rate_limits": [],
+      "usage_complete": true,
+      "full_observed_elapsed_seconds": 1713.683896,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [
+        {
+          "status": "collected",
+          "service_status": "completed",
+          "estimated_input_tokens": 310448,
+          "service_elapsed_seconds": 793,
+          "request_counts": {
+            "completed": 1700,
+            "failed": 0,
+            "total": 1700
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "controlled-cancellation-before-submission",
+      "provenance": "measured Azure, synthetic input only",
+      "mode": "batch",
+      "status": "needs_attention",
+      "record_count": 10,
+      "succeeded": 0,
+      "failed": 0,
+      "pending": 10,
+      "elapsed_seconds": 0.49746,
+      "errors_429": 0,
+      "http_attempts": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "cached_tokens": null,
+      "reasoning_tokens": null,
+      "label_accuracy": null,
+      "accuracy_denominator": 0,
+      "priced_usage_estimate_usd": null,
+      "observed_rate_limits": [],
+      "usage_complete": false,
+      "full_observed_elapsed_seconds": 1.558647,
+      "settings": {
+        "model_name": "gpt-5.4-mini",
+        "model_version": "2026-03-17",
+        "region": "southcentralus",
+        "rpm": 60,
+        "tpm": 150000,
+        "concurrency": 2,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "observe_service_throttling": false
+      },
+      "partitions": [
+        {
+          "status": "cancelled_before_submission",
+          "service_status": null,
+          "estimated_input_tokens": 1825,
+          "service_elapsed_seconds": null,
+          "request_counts": null
+        }
+      ]
+    }
+  ]
+}

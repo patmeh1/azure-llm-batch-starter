@@ -72,6 +72,6 @@ one platform's lock proves compatibility everywhere.
 Docker/DTS emulator testing is optional and is not required for the basic demo.
 Real cloud validation remains required for claims about the deployed workflow.
 
-Published live benchmark evidence belongs in a separately labeled sanitized
-report. Until such evidence is present, do not infer that a particular
-subscription/region completed a live run from passing offline CI alone.
+See the [measured live validation report](live-validation.md) and its sanitized
+JSON evidence. Passing offline CI alone does not establish Azure deployment or
+inference success.

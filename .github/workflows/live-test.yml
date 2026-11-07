@@ -1,0 +1,35 @@
+name: Opt-in Azure smoke test
+on:
+  workflow_dispatch:
+    inputs:
+      approve_charges:
+        description: I approve usage charges in the configured protected environment
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  live:
+    if: inputs.approve_charges && vars.ENABLE_LIVE_TESTS == 'true'
+    environment: azure-demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - run: python -m pip install -e ".[cloud]"
+      - name: Run real synthetic Batch workflow
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          DTS_ENDPOINT: ${{ secrets.DTS_ENDPOINT }}
+          TASKHUB_NAME: ${{ secrets.TASKHUB_NAME }}
+        run: python scripts/live-smoke.py --count 10 --timeout 900 --yes

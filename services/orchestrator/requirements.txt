@@ -1,0 +1,11 @@
+azure-functions>=1.21,<2
+azure-functions-durable>=1.7,<2
+openai>=2.54,<3
+azure-identity>=1.27,<2
+azure-storage-blob>=12.31,<13
+azure-storage-queue>=12.12,<13
+azure-data-tables>=12.7,<13
+pydantic>=2.10,<3
+jsonschema>=4.23,<5
+tiktoken>=0.9,<1
+filelock>=4.2.1,<5

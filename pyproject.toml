@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "azure-llm-batch-starter"
+version = "0.1.0"
+description = "Durable Azure OpenAI Batch automation, honest timing, and a local operations dashboard."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+  "openai>=2.0,<3",
+  "azure-identity>=1.19,<2",
+  "azure-storage-blob>=12.24,<13",
+  "azure-storage-queue>=12.12,<13",
+  "azure-data-tables>=12.6,<13",
+  "pydantic>=2.10,<3",
+  "jsonschema>=4.23,<5",
+  "tiktoken>=0.9,<1",
+  "typer>=0.15,<1",
+  "streamlit>=1.42,<2",
+  "pandas>=2.2,<4",
+  "filelock>=4.2.1,<5",
+]
+
+[project.optional-dependencies]
+cloud = [
+  "azure-functions>=1.21,<2",
+  "azure-functions-durable>=1.7,<2",
+  "durabletask-azuremanaged>=1.12,<2",
+]
+dev = [
+  "pytest>=8.3,<10",
+  "pytest-cov>=6,<8",
+  "ruff>=0.11",
+  "mypy>=1.15,<2",
+  "types-jsonschema",
+  "build>=1.2,<2",
+  "hatchling>=1.27",
+  "pip-tools>=7.4,<8",
+  "pip-audit>=2.7,<3",
+]
+
+[project.scripts]
+llm-batch = "llm_batch_starter.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm_batch_starter"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+  "live: opt-in real Azure tests that may incur charges",
+  "browser: dashboard browser checks",
+  "emulator: optional Docker/Durable Task Scheduler integration",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/llm_batch_starter"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+# The SDK's generator implementation triggers an internal mypy 1.20 error.
+# Keep checking our adapter and the SDK's public client types.
+[[tool.mypy.overrides]]
+module = ["durabletask.task"]
+follow_imports = "skip"

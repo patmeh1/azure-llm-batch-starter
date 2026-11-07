@@ -64,7 +64,6 @@ def request_run_cancellation(options: dict):
     run_id = valid_run_id(options["run_id"])
     store = AzureState(load_settings(auth_mode="managed_identity"))
     try:
-        store.get_run(run_id)
         store.save("control", run_id, "cancel", {"requested": True})
         return {"run_id": run_id, "status": "cancellation_requested"}
     finally:
@@ -94,10 +93,35 @@ def bootstrap_retry(options: dict):
     activities = CloudActivities()
     try:
         return activities.prepare_retry(
-            valid_run_id(options["parent_run_id"]), valid_run_id(options["run_id"])
+            valid_run_id(options.get("parent_artifact_run_id", options["parent_run_id"])),
+            valid_run_id(options["run_id"]),
         )
     finally:
         activities.close()
+
+
+@app.orchestration_trigger(context_name="context")
+def recovery_workflow(context: df.DurableOrchestrationContext):
+    return (yield from recovery_steps(context))
+
+
+def recovery_steps(context: df.DurableOrchestrationContext):
+    run_id = context.get_input()["artifact_run_id"]
+    details = yield context.call_activity_with_retry(
+        "prepare_run", df.RetryOptions(5000, 3), run_id
+    )
+    context.set_custom_status({"run_id": run_id, "parts": details["parts"], "stage": "recovering"})
+    tasks = [
+        context.call_sub_orchestrator(
+            "batch_partition",
+            {"run_id": run_id, "part": part, "limits": details},
+            instance_id=f"{context.instance_id}-{part['id']}",
+            version=context.version,
+        )
+        for part in details["parts"]
+    ]
+    yield context.task_all(tasks)
+    return (yield context.call_activity("finalize_run", run_id))
 
 
 @app.queue_trigger(
@@ -159,7 +183,7 @@ def partition_steps(context: df.DurableOrchestrationContext):
     deadline = context.current_utc_datetime + timedelta(seconds=limits["cloud_timeout_seconds"])
     while True:
         # Preserve the original unversioned activity sequence during deterministic replay.
-        if context.version is not None:
+        if context.version:
             cancelled = yield context.call_activity_with_retry(
                 "check_partition_cancellation",
                 df.RetryOptions(5000, 3),

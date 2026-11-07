@@ -72,7 +72,7 @@ Ambiguous submissions retain their reservation until an operator establishes
 the remote outcome; cancellation does not make an unknown paid submission safe
 to repeat.
 
-The host and both starters explicitly use orchestration version `1.0`.
+The host and both starters explicitly use orchestration version `2.0`.
 Sub-orchestrations inherit the root version. `CurrentOrOlder` matching with
 `Reject` prevents an older worker from accepting newer-version work during
 rolling deployment. The original unversioned activity sequence is retained
@@ -89,3 +89,19 @@ Before recovery, inspect its history and saved submission identity. Restore
 compatible code before using the scheduler's rewind operation; do not start a
 replacement paid job or release its reservation while its remote outcome is
 unknown.
+
+If incompatible events have already entered a failed orchestration's history,
+rewind can still fail. After investigating the failure, fixing its cause, and
+confirming its old activities are no longer running, use:
+
+```powershell
+llm-batch azure-recover FAILED_ROOT_ID --config .azure\demo-config.json
+```
+
+Recovery uses fresh orchestration/child histories but the **same persisted
+manifest, partition metadata, remote Batch IDs, and admission keys**. It does
+not regenerate or blindly resubmit inference. An ambiguous saved submission
+still requires operator reconciliation. Repeating recovery for the same failed
+root returns the same recovery ID. The original failed history remains visible,
+and reporting includes the prior application's elapsed time instead of claiming
+the recovery observer processed the entire dataset in seconds.

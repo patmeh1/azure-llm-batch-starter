@@ -6,7 +6,8 @@ import pytest
 
 from llm_batch_starter.config import WORKFLOW_VERSION
 from llm_batch_starter.quota import update_reservations
-from services.orchestrator.function_app import partition_steps
+from services.orchestrator import function_app
+from services.orchestrator.function_app import partition_steps, recovery_steps
 
 
 def reservation(key="a", tokens=600):
@@ -64,6 +65,15 @@ class Context:
     def set_custom_status(self, value):
         self.status = value
 
+    def call_sub_orchestrator(self, name, value, *, instance_id, version):
+        return ("child", name, value, instance_id, version)
+
+    def task_all(self, tasks):
+        return ("all", tasks)
+
+    def call_activity(self, name, value):
+        return ("activity", name, value)
+
 
 def test_queued_cancellation_does_not_wait_for_capacity_or_submit():
     context = Context()
@@ -100,9 +110,10 @@ def test_partition_releases_only_confirmed_terminal_reservations(release):
         assert stopped.value.value["status"] == "ambiguous"
 
 
-def test_legacy_replay_keeps_the_original_first_activity_sequence():
+@pytest.mark.parametrize("version", [None, ""])
+def test_legacy_replay_keeps_the_original_first_activity_sequence(version):
     context = Context()
-    context.version = None
+    context.version = version
     steps = partition_steps(context)
     assert next(steps)[1] == "acquire"
     assert steps.send(True)[1] == "step_partition"
@@ -115,3 +126,39 @@ def test_worker_and_clients_use_the_same_workflow_version():
     assert host["extensions"]["durableTask"]["defaultVersion"] == WORKFLOW_VERSION
     assert host["extensions"]["durableTask"]["versionMatchStrategy"] == "CurrentOrOlder"
     assert host["extensions"]["durableTask"]["versionFailureStrategy"] == "Reject"
+
+
+def test_recovery_uses_fresh_history_but_the_same_saved_partitions():
+    context = Context()
+    context.instance_id = "recovery-run"
+    context.get_input = lambda: {"artifact_run_id": "original-run"}
+    steps = recovery_steps(context)
+    assert next(steps) == ("activity", "prepare_run", "original-run")
+    waiting = steps.send({"parts": [{"id": "part-0000", "tokens": 500}]})
+    child = waiting[1][0]
+    assert child[2]["run_id"] == "original-run"
+    assert child[3] == "recovery-run-part-0000"
+    assert child[4] == WORKFLOW_VERSION
+    assert steps.send(None) == ("activity", "finalize_run", "original-run")
+    with pytest.raises(StopIteration):
+        steps.send({"status": "succeeded"})
+
+
+def test_cancellation_can_arrive_before_bootstrap_persists_the_run(monkeypatch):
+    saved = []
+
+    class Store:
+        def save(self, *args):
+            saved.append(args)
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(function_app, "AzureState", lambda settings: Store())
+    handler = next(
+        f
+        for f in function_app.app.get_functions()
+        if f.get_function_name() == "request_run_cancellation"
+    ).get_user_function()
+    assert handler({"run_id": "new-run"})["status"] == "cancellation_requested"
+    assert saved == [("control", "new-run", "cancel", {"requested": True})]

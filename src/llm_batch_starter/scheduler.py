@@ -98,7 +98,7 @@ class SchedulerAccess:
         state = self.client.get_orchestration_state(run_id)
         if state is None:
             raise ValueError(f"No scheduler instance found for {run_id}; do not blindly resubmit")
-        if state.name not in {"synthetic_workflow", "retry_workflow"}:
+        if state.name not in {"synthetic_workflow", "retry_workflow", "recovery_workflow"}:
             raise ValueError("This instance is not a supported application root")
         payload = json.loads(state.serialized_input or "{}")
         if not isinstance(payload, dict) or not isinstance(payload.get("count"), int):
@@ -127,6 +127,7 @@ class SchedulerAccess:
             "runtime_status": runtime,
             "record_count": payload.get("count", 0),
             "parent_run_id": payload.get("parent_run_id"),
+            "artifact_run_id": payload.get("artifact_run_id", run_id),
             "started_at": scheduler_timestamp(state.created_at),
             "ended_at": scheduler_timestamp(state.last_updated_at) if terminal else None,
             "failure_type": getattr(state.failure_details, "error_type", None)
@@ -150,7 +151,11 @@ class SchedulerAccess:
         runs = []
         for instance_id in sorted(known):
             state = self.client.get_orchestration_state(instance_id, fetch_payloads=False)
-            if state is not None and state.name in {"synthetic_workflow", "retry_workflow"}:
+            if state is not None and state.name in {
+                "synthetic_workflow",
+                "retry_workflow",
+                "recovery_workflow",
+            }:
                 runs.append(self.get_run(instance_id))
         return runs
 
@@ -172,13 +177,23 @@ class SchedulerAccess:
         )
         if isinstance(result, dict) and isinstance(result.get("report"), dict):
             report = dict(result["report"])
+            payload = json.loads(state.serialized_input or "{}")
+            report["artifact_run_id"] = payload.get("artifact_run_id", run_id)
+            report["id"] = run_id
+            report["parent_run_id"] = payload.get("parent_run_id")
             report["orchestration_elapsed_seconds"] = orchestration_elapsed
-            report["orchestration_completed_records_per_minute"] = (
-                report["succeeded"] * 60 / orchestration_elapsed if orchestration_elapsed else 0
+            total_elapsed = max(report["elapsed_seconds"], orchestration_elapsed)
+            report["end_to_end_elapsed_seconds"] = total_elapsed
+            report["end_to_end_completed_records_per_minute"] = (
+                report["succeeded"] * 60 / total_elapsed if total_elapsed else 0
             )
             return report
         jobs = []
-        processor = self.client.get_orchestration_state(f"{run_id}-processor")
+        processor = (
+            state
+            if state.name == "recovery_workflow"
+            else self.client.get_orchestration_state(f"{run_id}-processor")
+        )
         if processor and processor.serialized_custom_status:
             progress = json.loads(processor.serialized_custom_status)
             for part in progress.get("parts", []):
@@ -211,10 +226,10 @@ class SchedulerAccess:
         return report
 
     def request_cancel(self, run_id: str) -> str:
-        self.get_run(run_id)
+        run = self.get_run(run_id)
         return self.client.schedule_new_orchestration(
             "cancel_workflow",
-            input={"run_id": run_id},
+            input={"run_id": run["artifact_run_id"]},
             instance_id=f"cancel-{run_id}-{uuid.uuid4().hex[:8]}",
             version=WORKFLOW_VERSION,
         )
@@ -252,7 +267,44 @@ class SchedulerAccess:
         )
         self.client.schedule_new_orchestration(
             "retry_workflow",
-            input={"parent_run_id": parent_run_id, "count": count},
+            input={
+                "parent_run_id": parent_run_id,
+                "parent_artifact_run_id": report.get("artifact_run_id", parent_run_id),
+                "count": count,
+            },
+            instance_id=run_id,
+            version=WORKFLOW_VERSION,
+        )
+        return run_id
+
+    def recover(self, parent_run_id: str) -> str:
+        parent = self.get_run(parent_run_id)
+        if parent["runtime_status"] not in {"failed", "terminated", "canceled"}:
+            raise ValueError("Recovery requires an investigated, terminal orchestration failure")
+        run_id = uuid.uuid5(uuid.NAMESPACE_URL, f"llm-batch-starter:recovery:{parent_run_id}").hex
+        if self.client.get_orchestration_state(run_id) is not None:
+            return run_id
+        self.registry.save_run(
+            {
+                "id": run_id,
+                "mode": "batch",
+                "status": "submission_pending",
+                "source": "live-scheduler",
+                "record_count": parent["record_count"],
+                "started_at": utc_now(),
+                "ended_at": None,
+                "parent_run_id": parent_run_id,
+                "artifact_run_id": parent["artifact_run_id"],
+                "metadata": parent["metadata"],
+            }
+        )
+        self.client.schedule_new_orchestration(
+            "recovery_workflow",
+            input={
+                "parent_run_id": parent_run_id,
+                "artifact_run_id": parent["artifact_run_id"],
+                "count": parent["record_count"],
+            },
             instance_id=run_id,
             version=WORKFLOW_VERSION,
         )

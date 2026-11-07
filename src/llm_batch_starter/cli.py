@@ -315,6 +315,27 @@ def azure_status(
         store.close()
 
 
+@app.command("azure-recover")
+def azure_recover(run_id: str, config: ConfigPath = None, yes: bool = False) -> None:
+    """Recover an investigated workflow failure using saved jobs, not replacement inference."""
+    if not yes:
+        typer.confirm(
+            "After fixing the workflow failure, resume its saved partitions in a new orchestration?",
+            abort=True,
+        )
+    access = SchedulerAccess(load_settings(config))
+    try:
+        emit(
+            {
+                "run_id": access.recover(run_id),
+                "parent_run_id": run_id,
+                "status": "recovery_requested",
+            }
+        )
+    finally:
+        access.close()
+
+
 @app.command("azure-cancel")
 def azure_cancel(
     run_id: str, config: ConfigPath = None, yes: bool = False, transport: str = "scheduler"

@@ -175,6 +175,16 @@ llm-batch azure-retry-failed YOUR_RUN_ID --config .azure\demo-config.json
 The new run retains parent lineage. Permanent refusals, schema problems, and
 ambiguous outcomes are not blindly resubmitted.
 
+An orchestration/runtime failure is different from a per-record model failure.
+Investigate and fix it first, ensure old activities have stopped, then resume
+the saved partitions without creating replacement inference:
+
+```powershell
+llm-batch azure-recover FAILED_ROOT_ID --config .azure\demo-config.json
+```
+
+See [recovery and versioning](orchestration.md) before using this operator path.
+
 ## 8. Keep or remove the environment
 
 Keeping idle resources can still incur storage and logging charges. Before

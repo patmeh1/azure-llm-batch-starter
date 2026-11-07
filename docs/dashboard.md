@@ -34,3 +34,5 @@ private operational data.
 
 Restart a running dashboard after upgrading application modules. Development
 hot reload is not a substitute for testing the newly installed package.
+
+![Synthetic-only dashboard example](images/dashboard-demo.png)

@@ -24,10 +24,14 @@ def load_run_history(store: Any) -> list[dict[str, Any]]:
             summary = summarize_run(store, run["id"])
         else:
             summary = {**run, **run.get("summary", {})}
-            summary["elapsed_seconds"] = elapsed_between(run["started_at"], run.get("ended_at"))
+            summary["elapsed_seconds"] = max(
+                elapsed_between(run["started_at"], run.get("ended_at")),
+                summary.get("elapsed_seconds", 0) or 0,
+            )
         rows.append(
             {
                 "run_id": run["id"],
+                "parent_run_id": run.get("parent_run_id"),
                 "mode": run["mode"],
                 "status": run["status"],
                 "source": run.get("source", "unknown"),
@@ -151,7 +155,10 @@ def render_dashboard() -> None:
                     "Final reconciliation is not available. Missing counts, usage, and errors are unknown, not zero."
                 )
             cols = st.columns(4)
-            elapsed = detail.get("orchestration_elapsed_seconds", detail["elapsed_seconds"])
+            elapsed = detail.get(
+                "end_to_end_elapsed_seconds",
+                detail.get("orchestration_elapsed_seconds", detail["elapsed_seconds"]),
+            )
             cols[0].metric("Elapsed seconds", f"{elapsed:.2f}")
             cols[1].metric("Succeeded", detail["succeeded"])
             cols[2].metric(
@@ -161,14 +168,14 @@ def render_dashboard() -> None:
                 else None,
             )
             throughput = detail.get(
-                "orchestration_completed_records_per_minute", detail["completed_records_per_minute"]
+                "end_to_end_completed_records_per_minute", detail["completed_records_per_minute"]
             )
             cols[3].metric(
                 "Completed records/min", f"{throughput:.2f}" if throughput is not None else None
             )
-            if "orchestration_completed_records_per_minute" in detail:
+            if "end_to_end_completed_records_per_minute" in detail:
                 st.caption(
-                    f"Elapsed time includes scheduler bootstrap. Application-only elapsed: {detail['elapsed_seconds']:.2f}s."
+                    f"Full observed elapsed includes prior application work during recovery. Application: {detail['elapsed_seconds']:.2f}s; current orchestration: {detail['orchestration_elapsed_seconds']:.2f}s."
                 )
             token_cols = st.columns(4)
             token_cols[0].metric("Reported input tokens", detail["input_tokens"])

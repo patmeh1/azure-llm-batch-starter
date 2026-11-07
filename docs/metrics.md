@@ -4,6 +4,7 @@
 |---|---|
 | Run elapsed seconds | UTC end minus start; includes waiting and failures |
 | Orchestration elapsed seconds | Scheduler creation to terminal state, including synthetic bootstrap; shown for scheduler runs |
+| End-to-end elapsed seconds | The longer of observed application and current orchestration wall time; recovery does not erase prior waiting/work |
 | Completed records/minute | Successfully validated records / full wall time |
 | HTTP attempt duration | Client-observed call duration, not pure GPU inference time |
 | Record elapsed time | Admission waits, attempts, retries, and validation |

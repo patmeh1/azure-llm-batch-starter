@@ -6,6 +6,7 @@ import pytest
 
 from llm_batch_starter.config import Settings
 from llm_batch_starter.scheduler import SchedulerAccess
+from llm_batch_starter.state import State
 
 
 @pytest.mark.parametrize(
@@ -54,6 +55,55 @@ def test_failed_native_output_is_not_parsed_as_success_json(tmp_path, monkeypatc
         assert report["orchestration_elapsed_seconds"] == 60
     finally:
         access.close()
+
+
+def test_recovery_retains_artifact_identity_and_is_idempotent(tmp_path):
+    access = SchedulerAccess.__new__(SchedulerAccess)
+    access.registry = State(tmp_path / "state.sqlite3")
+    scheduled = []
+    access.get_run = lambda run_id: {
+        "runtime_status": "failed",
+        "record_count": 1700,
+        "artifact_run_id": "original-run",
+        "metadata": {},
+    }
+
+    def schedule(name, **kwargs):
+        assert name == "recovery_workflow"
+        scheduled.append(kwargs)
+        return kwargs["instance_id"]
+
+    access.client = SimpleNamespace(
+        get_orchestration_state=lambda run_id: object() if scheduled else None,
+        schedule_new_orchestration=schedule,
+    )
+    try:
+        first = access.recover("failed-root")
+        assert access.recover("failed-root") == first
+        assert len(scheduled) == 1
+        assert scheduled[0]["input"]["artifact_run_id"] == "original-run"
+        assert scheduled[0]["input"]["parent_run_id"] == "failed-root"
+    finally:
+        access.registry.close()
+
+
+def test_recovery_throughput_keeps_prior_application_time():
+    state = SimpleNamespace(
+        runtime_status=SimpleNamespace(name="COMPLETED"),
+        serialized_input=json.dumps(
+            {"artifact_run_id": "original-run", "parent_run_id": "failed-root"}
+        ),
+        serialized_output=json.dumps({"report": {"elapsed_seconds": 6000, "succeeded": 1700}}),
+        created_at=datetime(2026, 1, 1, 10, 0),
+        last_updated_at=datetime(2026, 1, 1, 10, 1),
+    )
+    access = SchedulerAccess.__new__(SchedulerAccess)
+    access.client = SimpleNamespace(get_orchestration_state=lambda run_id: state)
+    report = access.detail("recovery-run")
+    assert report["orchestration_elapsed_seconds"] == 60
+    assert report["end_to_end_elapsed_seconds"] == 6000
+    assert report["end_to_end_completed_records_per_minute"] == 17
+    assert report["artifact_run_id"] == "original-run"
 
 
 def test_synthetic_budget_is_checked_before_paid_submission(tmp_path, monkeypatch):

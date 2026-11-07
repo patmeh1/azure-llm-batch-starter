@@ -15,7 +15,7 @@
   "extensions": {
     "durableTask": {
       "hubName": "%TASKHUB_NAME%",
-      "defaultVersion": "1.0",
+      "defaultVersion": "2.0",
       "versionMatchStrategy": "CurrentOrOlder",
       "versionFailureStrategy": "Reject",
       "storageProvider": {

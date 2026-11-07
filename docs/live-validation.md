@@ -139,16 +139,20 @@ cancellation it does not mean they are still queued for inference.
 
 ## Automated validation
 
-- **52 Python tests** cover processing, reconciliation, pacing, fault handling,
+- **53 Python tests** cover processing, reconciliation, pacing, fault handling,
   token calibration, versioning, cancellation, recovery, timing, and dashboard
   behavior.
 - **Two real browser tests** cover the Streamlit UI and exports.
-- [GitHub CI](https://github.com/patmeh1/azure-llm-batch-starter/actions/runs/42333345877)
+- [GitHub CI](https://github.com/patmeh1/azure-llm-batch-starter/actions/workflows/ci.yml)
   passed on Windows and Ubuntu with Python 3.11 and 3.12, plus browser and
   infrastructure jobs.
 - Wheel/source builds, Bicep compilation, linting, and type checking passed.
   The resolved Python dependency audit and npm audit reported no known
   vulnerabilities at validation time; this is not a permanent security claim.
+- Release 0.1.1 additionally enforces LF shell scripts in Windows checkouts
+  and inspects built archive bytes. This fixes the Windows-built source
+  archive's shell-script line endings from 0.1.0; the Python processing code
+  and measured inference results are unchanged.
 - Docker/emulator tests were not run. Real Azure validation is listed
   separately above.
 

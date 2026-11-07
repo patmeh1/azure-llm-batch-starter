@@ -23,6 +23,7 @@ jobs:
       - run: python -m mypy src/llm_batch_starter
       - run: python scripts/run-tests.py -q -m "not live and not browser and not emulator"
       - run: python -m build --no-isolation
+      - run: python scripts/verify-release.py
       - run: python -m pip_audit --disable-pip --no-deps -r requirements.lock --progress-spinner off
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
       - uses: actions/upload-artifact@v4

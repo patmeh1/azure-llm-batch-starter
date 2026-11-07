@@ -8,12 +8,17 @@ python -m ruff check src services tests scripts
 python -m mypy src\llm_batch_starter
 python scripts\run-tests.py -q
 python -m build --no-isolation
+python scripts\verify-release.py
 python -m pip_audit --disable-pip --no-deps -r requirements.lock --progress-spinner off
 ```
 
 The timed runner emits JUnit XML plus `reports\test-summary-*.json`, including
 failures and skipped tests, then preserves pytest's exit code. The dashboard
 reads the normalized JSON reports. CI uploads reports even when tests fail.
+
+Release verification inspects the actual source/wheel archives, including
+shell-script LF bytes on Windows builds, required files, private-artifact
+exclusions, and the CLI entry point.
 
 Coverage includes deterministic input generation, duplicate IDs, input limits,
 partitioning, retry header parsing, refusal/truncation handling, missing/duplicate

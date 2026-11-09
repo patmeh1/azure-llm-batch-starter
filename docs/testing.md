@@ -101,3 +101,8 @@ records, unchanged v2 prompt hashes, budget/deadline preservation across resume,
 explicit ambiguous online outcomes, and US online-only preflight behavior.
 Its full live experiment is separately labeled in [v3 results](v3-results.md);
 passing offline tests is not a claim that the long run has completed.
+
+The [customer-facing GitHub Pages site](customer-site.md) has a separate
+standard-library builder and Playwright suite (`npm run test:site`). Its
+normalized timing reports use `--category site`. These tests do not read
+private run state or call Azure.

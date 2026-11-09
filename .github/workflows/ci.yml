@@ -54,6 +54,9 @@ jobs:
       - run: npm run test:browser
       - run: python scripts/normalize-browser-report.py
         if: always()
+      - run: npm run test:site
+      - run: python scripts/normalize-browser-report.py --category site
+        if: always()
       - uses: actions/upload-artifact@v4
         if: always()
         with:

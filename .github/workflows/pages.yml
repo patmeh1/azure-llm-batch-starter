@@ -1,0 +1,70 @@
+name: Publish customer comparison site
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'docs/**'
+      - 'prompts/**'
+      - 'scripts/build-site.py'
+      - 'scripts/normalize-browser-report.py'
+      - 'tests/site/**'
+      - 'playwright.site.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build and verify static site
+        run: npm run test:site
+      - run: python scripts/normalize-browser-report.py --category site
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pages-browser-evidence
+          path: reports/
+      - name: Upload allowlisted site output
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

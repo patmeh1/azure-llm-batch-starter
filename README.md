@@ -7,6 +7,10 @@ read-only dashboard for durations, failures, retries, token rates, and tests.
 
 All examples are synthetic. No Azure credentials or customer content are included.
 
+**Customer-facing comparison page:** [patmeh1.github.io/azure-llm-batch-starter](https://patmeh1.github.io/azure-llm-batch-starter/)
+brings together measured comparisons, limitations, prompts, guides, downloads,
+and timestamped v3 progress. It does not connect to Azure or trigger inference.
+
 ## Choose your starting point
 
 | Goal | Start here |
@@ -18,6 +22,7 @@ All examples are synthetic. No Azure credentials or customer content are include
 | Run complex synthetic prompts stored in Markdown | [V2 complex workload](docs/complex-prompts.md) |
 | Compare GPT-5 mini sequential calls with five groups of 340 | [V3 reproduction guide](docs/v3-gpt5-mini.md) |
 | Inspect the full v3 experiment's current evidence | [V3 results/status](docs/v3-results.md) |
+| Maintain or republish the public HTML site | [Customer site guide](docs/customer-site.md) |
 | Review v2 timing and failed semantic acceptance gates | [V2 measured results](docs/complex-v2-validation.md) |
 | Understand the reusable Microsoft framework | [Orchestration](docs/orchestration.md) |
 | Review topology, authentication, and data flow | [Architecture](docs/architecture.md) |

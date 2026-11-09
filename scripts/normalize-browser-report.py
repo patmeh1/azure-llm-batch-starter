@@ -1,10 +1,14 @@
+import argparse
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-source = Path("reports/browser-results.json")
+parser = argparse.ArgumentParser()
+parser.add_argument("--category", choices=["browser", "site"], default="browser")
+args = parser.parse_args()
+source = Path(f"reports/{args.category}-results.json")
 if not source.exists():
-    raise SystemExit("No browser result file; run npm run test:browser first.")
+    raise SystemExit(f"No {args.category} result file; run npm run test:{args.category} first.")
 report = json.loads(source.read_text(encoding="utf-8"))
 tests = []
 
@@ -31,9 +35,9 @@ summary = {
     "timestamp": stamp.isoformat(),
     "status": "passed" if tests and all(t["status"] == "passed" for t in tests) else "failed",
     "duration_seconds": report.get("stats", {}).get("duration", 0) / 1000,
-    "category": "browser",
+    "category": args.category,
     "tests": tests,
 }
-Path(f"reports/test-summary-browser-{stamp:%Y%m%dT%H%M%SZ}.json").write_text(
+Path(f"reports/test-summary-{args.category}-{stamp:%Y%m%dT%H%M%SZ}.json").write_text(
     json.dumps(summary, indent=2), encoding="utf-8"
 )

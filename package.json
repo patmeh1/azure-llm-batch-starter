@@ -2,7 +2,10 @@
   "name": "azure-llm-batch-starter-browser-tests",
   "private": true,
   "scripts": {
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "build:site": "python scripts/build-site.py",
+    "pretest:site": "npm run build:site",
+    "test:site": "playwright test --config playwright.site.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0"

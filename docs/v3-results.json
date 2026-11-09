@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-11-09T19:58:33.159679+00:00",
+  "observed_at": "2026-11-09T21:54:24.855301+00:00",
   "started_at": "2026-11-09T19:52:39.511305+00:00",
   "execution_status": "running",
   "specification": {
@@ -64,131 +64,131 @@
     "batch_discount": 0.5
   },
   "conservative_all_attempts_estimate_usd": 137.04740940000002,
-  "elapsed_seconds_including_waits": 353.647373,
+  "elapsed_seconds_including_waits": 7305.342995,
   "results_final": false,
   "runs": [
     {
       "mode": "sequential",
       "status": "running",
       "record_count": 1700,
-      "succeeded": 31,
+      "succeeded": 599,
       "failed": 0,
-      "pending": 1669,
-      "elapsed_seconds": 353.034554,
-      "completed_records_per_minute": 5.268606086643858,
-      "http_attempts": 51,
-      "errors_429": 20,
-      "retry_wait_seconds": 89.19700000000002,
-      "input_tokens": 947913,
-      "output_tokens": 21213,
-      "cached_tokens": 906240,
-      "reasoning_tokens": 16512,
-      "http_200_latency_p50_seconds": 6.780999999959022,
-      "http_200_latency_p95_seconds": 9.570500000030734,
-      "successful_record_elapsed_mean_seconds": 10.329129032257404,
-      "all_record_elapsed_mean_seconds": 10.329129032257404,
-      "record_elapsed_measured_count": 31,
+      "pending": 1101,
+      "elapsed_seconds": 7304.717175,
+      "completed_records_per_minute": 4.92010835450313,
+      "http_attempts": 1186,
+      "errors_429": 587,
+      "retry_wait_seconds": 3070.324999999998,
+      "input_tokens": 18315262,
+      "output_tokens": 399396,
+      "cached_tokens": 18006784,
+      "reasoning_tokens": 309568,
+      "http_200_latency_p50_seconds": 6.64100000000326,
+      "http_200_latency_p95_seconds": 8.90600000001723,
+      "successful_record_elapsed_mean_seconds": 12.128727879799387,
+      "all_record_elapsed_mean_seconds": 12.128727879799387,
+      "record_elapsed_measured_count": 599,
       "observed_rate_limits": [
         {
           "requests_per_minute": "150",
           "tokens_per_minute": "150000"
         }
       ],
-      "priced_usage_estimate_usd": 0.083050275,
+      "priced_usage_estimate_usd": 1.45868921,
       "quality": {
         "profile": "complex-v2",
         "expected_records": 1700,
-        "evaluated_records": 31,
-        "not_evaluated_records": 1669,
-        "passed_records": 2,
-        "fully_correct_fraction_of_all_records": 0.001176470588235294,
-        "exact_match_fraction_of_evaluated": 0.06451612903225806,
+        "evaluated_records": 599,
+        "not_evaluated_records": 1101,
+        "passed_records": 57,
+        "fully_correct_fraction_of_all_records": 0.033529411764705884,
+        "exact_match_fraction_of_evaluated": 0.09515859766277128,
         "field_accuracy": {
-          "cause_explanation": 0.2903225806451613,
-          "cause_group": 0.5483870967741935,
-          "confidence": 0.7741935483870968,
-          "confidence_basis": 1.0,
-          "impact": 1.0,
-          "improvements": 0.22580645161290322,
-          "prevention": 1.0,
-          "prevention_reason": 0.5161290322580645,
-          "primary_route": 0.9032258064516129,
-          "resolution": 0.8387096774193549,
-          "secondary_routes": 0.41935483870967744
+          "cause_explanation": 0.24040066777963273,
+          "cause_group": 0.4607679465776294,
+          "confidence": 0.8614357262103506,
+          "confidence_basis": 0.996661101836394,
+          "impact": 0.9799666110183639,
+          "improvements": 0.2337228714524207,
+          "prevention": 0.9699499165275459,
+          "prevention_reason": 0.4991652754590985,
+          "primary_route": 0.9482470784641068,
+          "resolution": 0.8313856427378965,
+          "secondary_routes": 0.4691151919866444
         },
         "constraint_compliance": {
           "confidence_bounds": 1.0,
-          "confidence_never_lowered": 1.0,
+          "confidence_never_lowered": 0.998330550918197,
           "identifier_suppression": 1.0,
-          "immutable_archived_confidence": 1.0,
+          "immutable_archived_confidence": 0.998330550918197,
           "improvement_limit_and_distinctness": 1.0,
           "secondary_limit_and_distinctness": 1.0,
           "taxonomy_membership": 1.0
         },
         "scenario_breakdown": {
           "direct_need": {
-            "records": 3,
-            "evaluated": 3,
-            "passed": 0
+            "records": 47,
+            "evaluated": 47,
+            "passed": 2
           },
           "stale_candidate": {
-            "records": 3,
-            "evaluated": 3,
-            "passed": 0
+            "records": 46,
+            "evaluated": 46,
+            "passed": 1
           },
           "ivr_distraction": {
-            "records": 3,
-            "evaluated": 3,
-            "passed": 0
+            "records": 46,
+            "evaluated": 46,
+            "passed": 2
           },
           "negated_intent": {
-            "records": 3,
-            "evaluated": 3,
+            "records": 46,
+            "evaluated": 46,
             "passed": 0
           },
           "corrected_goal": {
-            "records": 3,
-            "evaluated": 3,
-            "passed": 0
-          },
-          "secondary_topics": {
-            "records": 2,
-            "evaluated": 2,
-            "passed": 0
-          },
-          "insufficient_source": {
-            "records": 2,
-            "evaluated": 2,
+            "records": 46,
+            "evaluated": 46,
             "passed": 2
           },
+          "secondary_topics": {
+            "records": 46,
+            "evaluated": 46,
+            "passed": 3
+          },
+          "insufficient_source": {
+            "records": 46,
+            "evaluated": 46,
+            "passed": 46
+          },
           "partial_evidence": {
-            "records": 2,
-            "evaluated": 2,
+            "records": 46,
+            "evaluated": 46,
             "passed": 0
           },
           "unresolved_handoff": {
-            "records": 2,
-            "evaluated": 2,
+            "records": 46,
+            "evaluated": 46,
             "passed": 0
           },
           "ambiguous_tie": {
-            "records": 2,
-            "evaluated": 2,
+            "records": 46,
+            "evaluated": 46,
             "passed": 0
           },
           "confidence_upgrade": {
-            "records": 2,
-            "evaluated": 2,
-            "passed": 0
+            "records": 46,
+            "evaluated": 46,
+            "passed": 1
           },
           "instruction_in_data": {
-            "records": 2,
-            "evaluated": 2,
+            "records": 46,
+            "evaluated": 46,
             "passed": 0
           },
           "partial_outcome": {
-            "records": 2,
-            "evaluated": 2,
+            "records": 46,
+            "evaluated": 46,
             "passed": 0
           }
         },

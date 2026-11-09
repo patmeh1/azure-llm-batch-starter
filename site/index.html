@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Customer-ready, synthetic Azure OpenAI processing comparisons: sequential requests, client-side groups, and the Batch API. Explore measurements, limitations, prompts, code, and guides.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <link rel="canonical" href="https://patmeh1.github.io/azure-llm-batch-starter/">
+  <link rel="icon" href="data:,">
+  <title>Azure LLM Batch Starter | Evidence-first scaling</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 7rem; }
+    body { margin: 0; background: var(--cp-bg); color: var(--cp-text); font: 1rem/1.65 "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; }
+    a { color: var(--cp-link); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--cp-accent); outline-offset: 4px; }
+    button { font: inherit; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(2.4rem, 5.2vw, 4.5rem); line-height: 1.07; letter-spacing: -.045em; font-weight: 720; margin-bottom: 1.5rem; }
+    h2 { font-size: clamp(1.7rem, 3vw, 2.45rem); line-height: 1.2; letter-spacing: -.025em; margin-bottom: 1rem; }
+    h3 { font-size: 1.15rem; line-height: 1.4; margin-bottom: .75rem; }
+    p { margin-bottom: 1rem; }
+    code, pre { font-family: Consolas, "Courier New", Courier, monospace; }
+    code { font-size: .9em; overflow-wrap: anywhere; }
+    pre { margin: 0; overflow-x: auto; padding: 1.5rem; border: 1px solid var(--cp-border); background: var(--cp-surface-soft); border-radius: .625rem; line-height: 1.75; }
+    pre code { overflow-wrap: normal; }
+    .wrap { max-width: 1200px; margin-inline: auto; padding-inline: 1.5rem; }
+    .skip { position: absolute; top: -5rem; left: 1rem; padding: .75rem 1rem; z-index: 20; background: var(--cp-surface); border: 2px solid var(--cp-accent); }
+    .skip:focus { top: .75rem; }
+    .site-header { position: sticky; top: 0; z-index: 10; background: var(--cp-bg-elevated); border-bottom: 1px solid var(--cp-border); }
+    .topbar { display: flex; align-items: center; gap: 1.5rem; min-height: 76px; }
+    .brand { display: inline-flex; gap: .75rem; align-items: center; color: var(--cp-text); text-decoration: none; font-weight: 700; line-height: 1.25; flex-shrink: 0; }
+    .brand svg { color: var(--cp-accent); width: 30px; height: 30px; }
+    .brand small { display: block; font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .12em; color: var(--cp-text-muted); margin-top: .25rem; }
+    .topnav { display: flex; gap: 1.5rem; margin-left: auto; font-size: .9rem; }
+    .topnav a { color: var(--cp-text-muted); text-decoration: none; white-space: nowrap; }
+    .topnav a:hover { color: var(--cp-accent); }
+    .theme-button { border: 1px solid var(--cp-border); border-radius: .625rem; background: var(--cp-surface); color: var(--cp-text); padding: .5rem .75rem; cursor: pointer; }
+    .js-only { display: none; }
+    .js .js-only { display: inline-flex; }
+    .hero { display: grid; grid-template-columns: 1.35fr .85fr; gap: 3rem; padding-block: 4.5rem 3rem; align-items: center; }
+    .eyebrow { color: var(--cp-accent); font-size: .75rem; text-transform: uppercase; letter-spacing: .15em; font-weight: 700; margin-bottom: 1.25rem; }
+    .hero h1 span { color: var(--cp-accent); }
+    .lede { color: var(--cp-text-muted); font-size: 1.1rem; max-width: 58ch; }
+    .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1.1rem; min-height: 46px; border-radius: .625rem; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); font-weight: 600; text-decoration: none; cursor: pointer; }
+    .button.primary { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
+    .button.primary:hover { background: var(--cp-accent-hover); }
+    .hero-panel { padding: 1.75rem; border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); box-shadow: 0 1px 2px var(--cp-highlight); }
+    .hero-panel h2 { font-size: 1.4rem; margin-bottom: 1.5rem; }
+    .takeaway { display: grid; grid-template-columns: 2rem 1fr; gap: .75rem; margin-top: 1.25rem; }
+    .takeaway > span { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .625rem; background: var(--cp-accent-soft); color: var(--cp-accent); font-size: .8rem; font-weight: 700; }
+    .takeaway p { margin: .25rem 0 0; font-size: .9rem; color: var(--cp-text-muted); }
+    .trust-strip { display: flex; flex-wrap: wrap; gap: .75rem 2rem; padding-block: 1.1rem; border-block: 1px solid var(--cp-border); color: var(--cp-text-muted); font-size: .85rem; }
+    .trust-strip span::before { content: "\2713"; margin-right: .5rem; color: var(--cp-accent); font-weight: 700; }
+    section { padding-block: 3rem; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .section-heading p { color: var(--cp-text-muted); max-width: 70ch; margin-bottom: 0; }
+    .kicker { font-size: .75rem; letter-spacing: .13em; text-transform: uppercase; font-weight: 700; color: var(--cp-text-soft); margin-bottom: .75rem; }
+    .grid-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+    .grid-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+    .grid-two > *, .hero > * { min-width: 0; }
+    .card { min-width: 0; padding: 1.5rem; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; }
+    .card p { font-size: .95rem; color: var(--cp-text-muted); }
+    .card .card-link { display: inline-block; margin-top: .5rem; font-weight: 600; font-size: .9rem; }
+    .version { display: inline-block; font-size: .75rem; letter-spacing: .08em; color: var(--cp-accent); font-weight: 700; margin-bottom: .75rem; }
+    .tag { display: inline-flex; align-items: center; gap: .5rem; padding: .3rem .65rem; border-radius: .625rem; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); color: var(--cp-text); font-size: .75rem; font-weight: 600; white-space: nowrap; }
+    .tag::before { content: ""; height: .45rem; width: .45rem; border-radius: 50%; background: var(--cp-success); flex-shrink: 0; }
+    .tag.attention::before { background: var(--cp-warning); }
+    .tag.incomplete::before { background: var(--cp-accent); }
+    .callout { padding: 1.1rem 1.3rem; border: 1px solid var(--cp-border); border-radius: .625rem; background: var(--cp-bg-elevated); margin-block: 1.25rem; }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout.warning { background: var(--cp-surface-soft); }
+    .callout small, .small { font-size: .85rem; color: var(--cp-text-muted); }
+    .evidence { border-top: 1px solid var(--cp-border); }
+    .evidence-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+    .evidence-heading h2 { margin: 0; }
+    .evidence-context { font-size: .9rem; color: var(--cp-text-muted); margin-bottom: 1.5rem; }
+    .table-shell { max-width: 100%; min-width: 0; overflow-x: auto; border: 1px solid var(--cp-border); border-radius: .625rem; background: var(--cp-surface); }
+    table { border-collapse: collapse; width: 100%; text-align: left; font-size: .9rem; }
+    caption { text-align: left; padding: .85rem 1rem; color: var(--cp-text-muted); background: var(--cp-bg-elevated); font-size: .8rem; }
+    th, td { padding: 1rem; border-bottom: 1px solid var(--cp-border); vertical-align: middle; }
+    thead th { background: var(--cp-surface-soft); color: var(--cp-text-muted); font-size: .75rem; font-weight: 650; letter-spacing: .03em; }
+    tbody th { font-weight: 600; min-width: 10rem; }
+    tbody tr:last-child > * { border-bottom: 0; }
+    .number { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td .sub { display: block; font-size: .75rem; color: var(--cp-text-muted); }
+    .bar-cell { min-width: 10rem; }
+    .bar-track { height: .3rem; background: var(--cp-border); border-radius: 1rem; margin-top: .4rem; }
+    .bar-fill { height: 100%; background: var(--cp-accent); border-radius: 1rem; min-width: 2px; }
+    .evidence-links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-size: .85rem; margin-top: 1rem; }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+    .metric { padding: 1.25rem; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: .625rem; }
+    .metric strong { display: block; font-size: 1.7rem; line-height: 1.25; font-variant-numeric: tabular-nums; }
+    .metric span { display: block; font-size: .8rem; color: var(--cp-text-muted); margin-top: .3rem; }
+    details { margin-top: 1.25rem; border: 1px solid var(--cp-border); border-radius: .625rem; background: var(--cp-surface); }
+    summary { cursor: pointer; font-weight: 600; padding: 1rem 1.25rem; }
+    .details-body { padding: 0 1.25rem 1.25rem; }
+    .details-body .table-shell { margin-top: .5rem; }
+    .progress-track { height: .6rem; background: var(--cp-border); border-radius: 1rem; overflow: hidden; margin-top: .8rem; }
+    .progress-fill { height: 100%; background: var(--cp-accent); }
+    .status-line { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+    .dashboard-image { width: 100%; max-height: 460px; object-fit: cover; object-position: top; border: 1px solid var(--cp-border); border-radius: .625rem; display: block; }
+    figure { margin: 0; }
+    figcaption { margin-top: .75rem; font-size: .8rem; color: var(--cp-text-muted); }
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+    .steps li { counter-increment: step; position: relative; padding: 0 0 1.25rem 3rem; }
+    .steps li::before { content: counter(step); position: absolute; left: 0; width: 2rem; height: 2rem; display: grid; place-items: center; background: var(--cp-accent-soft); border-radius: .625rem; color: var(--cp-accent); font-weight: 700; }
+    .steps p { margin-top: .25rem; font-size: .9rem; color: var(--cp-text-muted); }
+    .resource-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+    .resource-list { list-style: none; padding: 0; margin: 0; }
+    .resource-list li + li { margin-top: .7rem; }
+    .resource-list a { font-size: .9rem; }
+    .resource-list small { display: block; color: var(--cp-text-muted); font-size: .75rem; }
+    .command-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
+    .command-head h3 { margin-bottom: 0; }
+    .copy-button { background: var(--cp-surface); color: var(--cp-text); border: 1px solid var(--cp-border); border-radius: .625rem; padding: .35rem .75rem; cursor: pointer; font-size: .8rem; }
+    .copy-status { display: block; min-height: 1.5rem; font-size: .8rem; color: var(--cp-text-muted); margin-top: .5rem; }
+    .limitations { padding: 1.5rem; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); border-radius: 16px; }
+    .limitations ul { margin-bottom: 0; padding-left: 1.25rem; }
+    .limitations li { margin-block: .5rem; font-size: .9rem; }
+    .site-footer { padding-block: 2rem; border-top: 1px solid var(--cp-border); color: var(--cp-text-muted); font-size: .8rem; }
+    .footer-row { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; justify-content: space-between; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    html[data-theme="dark"] :is(.brand small, .topnav a, .lede, .takeaway p, .trust-strip, .section-heading p, .card p, .callout small, .small, .evidence-context, caption, thead th, td .sub, .metric span, figcaption, .steps p, .resource-list small, .copy-status, .site-footer) { color: var(--cp-text-soft); }
+    html[data-theme="dark"] .topnav a:hover { color: var(--cp-accent); }
+    @media (max-width: 960px) {
+      .hero { grid-template-columns: 1fr; gap: 2rem; padding-top: 3rem; }
+      .hero-panel { max-width: none; }
+      .hero-panel h2 { margin-bottom: 1rem; }
+      .grid-three, .resource-grid { grid-template-columns: 1fr; }
+      .grid-two { grid-template-columns: 1fr; }
+      .topnav { gap: 1rem; }
+    }
+    @media (max-width: 640px) {
+      .wrap { padding-inline: 1rem; }
+      .topbar { flex-wrap: wrap; gap: .75rem; padding-block: .75rem; }
+      .topnav { order: 3; width: 100%; overflow-x: auto; margin: 0; padding-bottom: .1rem; }
+      .topnav a:last-child { display: none; }
+      .theme-button { margin-left: auto; }
+      .hero { padding-block: 2.5rem 2rem; }
+      section { padding-block: 2.25rem; }
+      .metric-grid { grid-template-columns: 1fr; }
+      .section-heading { display: block; }
+      .card, .hero-panel { padding: 1.25rem; }
+      h1 { font-size: 2.65rem; }
+      pre { padding: 1rem; font-size: .8rem; }
+      .tag { white-space: normal; }
+      .dashboard-image { max-height: 400px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      .site-header, .actions, .copy-button, .copy-status { display: none !important; }
+      .wrap { max-width: none; padding-inline: 0; }
+      .hero { padding-top: 0; }
+      .card, .metric, .table-shell { break-inside: avoid; box-shadow: none; }
+      .table-shell { overflow: visible; }
+      a { text-decoration: underline; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap topbar">
+      <a class="brand" href="#top">
+        <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M5 8h22M5 16h15M5 24h8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+        <span>Azure LLM Batch Starter<small>Evidence-first scaling</small></span>
+      </a>
+      <nav class="topnav" aria-label="Main navigation">
+        <a href="#comparisons">Comparisons</a>
+        <a href="#approach">Choose an approach</a>
+        <a href="#resources">Resources</a>
+        <a href="@@REPO@@">GitHub &nearr;</a>
+      </nav>
+      <button class="theme-button js-only" id="theme-toggle" type="button" aria-label="Switch color theme"><span id="theme-label">Theme</span></button>
+    </div>
+  </header>
+  <main id="main">
+    <div class="wrap" id="top">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Synthetic workloads. Measured outcomes. Open source.</p>
+          <h1>More workers.<br><span>Not more capacity.</span></h1>
+          <p class="lede">Understand what changes when LLM requests run sequentially, in client-side groups, or through Azure Batch. Compare throughput, throttling, and answer quality&mdash;with the evidence and code behind every result.</p>
+          <div class="actions">
+            <a class="button primary" href="#comparisons">Explore the comparisons <span aria-hidden="true">&darr;</span></a>
+            <a class="button" href="#start">Try the starter</a>
+          </div>
+        </div>
+        <aside class="hero-panel" aria-label="Three things to know">
+          <p class="kicker">The short version</p>
+          <h2>Measure the whole job.<br>Check the actual answers.</h2>
+          <div class="takeaway"><span>01</span><div><strong>Concurrency shares quota.</strong><p>Five client groups still use one deployment's token and request limits.</p></div></div>
+          <div class="takeaway"><span>02</span><div><strong>Batch is a different service mode.</strong><p>Separate enqueued-token quota and asynchronous turnaround, when the model/SKU supports it.</p></div></div>
+          <div class="takeaway"><span>03</span><div><strong>Valid JSON is not correct analysis.</strong><p>The complex workload completed processing, but its semantic quality gates failed.</p></div></div>
+        </aside>
+      </div>
+      <div class="trust-strip" aria-label="Sharing and data boundaries">
+        <span>Entirely synthetic examples</span><span>Customer-neutral evidence</span><span>US Data Zone test configuration</span><span>No live Azure connection from this page</span>
+      </div>
+
+      <section id="comparisons" aria-labelledby="comparisons-title">
+        <div class="section-heading">
+          <div><p class="kicker">Three versions, three questions</p><h2 id="comparisons-title">Find the comparison you need.</h2><p>Compare modes within a matched workload. Different versions use different datasets, models, or allocations; they are not one head-to-head race.</p></div>
+        </div>
+        <div class="grid-three">
+          <article class="card"><span class="version">V1 &middot; PROCESSING BASELINE</span><h3>Can capacity and pacing explain the slowdown?</h3><p>Compact classification, high-token bursts, and a 1,700-record service-Batch recovery test on GPT-5.4 mini.</p><span class="tag">Measured results</span><br><a class="card-link" href="#v1">Explore v1 &rarr;</a></article>
+          <article class="card"><span class="version">V2 &middot; COMPLEX PROMPTS</span><h3>Does the model follow the rules?</h3><p>425 routes, 850 examples, and thirteen synthetic conversation cases. Same Markdown prompts across all three processing modes.</p><span class="tag attention">Quality gates failed</span><br><a class="card-link" href="#v2">Explore v2 &rarr;</a></article>
+          <article class="card"><span class="version">V3 &middot; GPT-5 MINI</span><h3>What happens with five groups of 340?</h3><p>The unchanged v2 prompts on GPT-5 mini at 150K TPM. 1,700 sequential records, followed by five fixed online streams.</p>@@V3_CARD_STATUS@@<br><a class="card-link" href="#v3">Inspect v3 status &rarr;</a></article>
+        </div>
+      </section>
+
+      <section id="v1" class="evidence" aria-labelledby="v1-title">
+        <div class="evidence-heading"><div><p class="version">V1 &middot; GPT-5.4 MINI</p><h2 id="v1-title">Capacity before concurrency.</h2></div><span class="tag">Measured @@V1_DATE@@</span></div>
+        <p class="evidence-context">GPT-5.4 mini 2026-03-17 &middot; 100 compact records &middot; @@V1_INPUT_RANGE@@ reported input tokens per request &middot; low reasoning effort &middot; 1,024-token generation ceiling. Online calls used a 120 RPM client cap against 150K TPM / 150 RPM service limits; Batch used its separate quota.</p>
+        <div class="table-shell" tabindex="0" role="region" aria-label="V1 compact comparison table">
+          <table><caption>Completed runs. Full observed duration includes waiting; lower duration is better within this workload.</caption><thead><tr><th scope="col">Mode</th><th scope="col">Full elapsed</th><th scope="col">Validated records</th><th scope="col">429 attempts</th><th scope="col">Category accuracy</th><th scope="col">Usage estimate</th></tr></thead><tbody>@@V1_COMPACT_ROWS@@</tbody></table>
+        </div>
+        <div class="callout"><strong>A shared client limit can hide the benefit of parallelism.</strong><p>At a 60 RPM client cap, the same 100 records took <strong>@@V1_60_SEQ@@</strong> sequentially and <strong>@@V1_60_PAR@@</strong> in parallel. Increasing the cap to 120 RPM improved parallel throughput in this test&mdash;without changing the model.</p></div>
+        <div class="grid-two">
+          <article class="card"><p class="kicker">A bounded token burst</p><h3>Same six requests. Different allocation.</h3><p>Approximately 72K input tokens per request, five workers, no initial pacing, and one attempt per record.</p><div class="table-shell"><table><thead><tr><th scope="col">Service limit</th><th scope="col">Validated</th><th scope="col">429s</th></tr></thead><tbody>@@V1_CAPACITY_ROWS@@</tbody></table></div><p class="small" style="margin-top:1rem">Cache usage differed. Six successful requests are not a sustained-capacity certification or a zero-429 guarantee.</p></article>
+          <article class="card"><p class="kicker">Scale and recovery</p><h3>1,700 compact records, one real Batch job.</h3><p><strong>@@V1_SCALE_SUCCESS@@</strong> outputs reconciled. A development workflow failure was recovered using the original remote job, not replacement inference.</p><div class="metric-grid" style="grid-template-columns:1fr 1fr"><div class="metric"><strong>@@V1_SCALE_SERVICE@@</strong><span>Service turnaround</span></div><div class="metric"><strong>@@V1_SCALE_WALL@@</strong><span>Full app time, including recovery</span></div></div><p class="small">Category accuracy: <strong>@@V1_SCALE_ACCURACY@@</strong>. These are compact inputs, not the complex v2/v3 prompts. This is a recovery/correctness example, not an uninterrupted latency benchmark.</p></article>
+        </div>
+        <details><summary>See all v1 experiments, including calibrated large-input tests</summary><div class="details-body"><p class="small">These rows use different workload sizes and profiles. Do not rank them as one performance race.</p><div class="table-shell" tabindex="0" role="region" aria-label="All v1 experiments"><table><thead><tr><th scope="col">Experiment</th><th scope="col">Records</th><th scope="col">Validated</th><th scope="col">Full observed time</th><th scope="col">429s</th></tr></thead><tbody>@@V1_ALL_ROWS@@</tbody></table></div></div></details>
+        <div class="evidence-links"><a href="@@REPO@@/blob/main/docs/live-validation.md">Full v1 report &nearr;</a><a href="data/v1-results.json" download>Download v1 evidence JSON</a><a href="@@REPO@@/releases/tag/v0.1.1">V1 release &nearr;</a></div>
+      </section>
+
+      <section id="v2" class="evidence" aria-labelledby="v2-title">
+        <div class="evidence-heading"><div><p class="version">V2 &middot; GPT-5.4 MINI</p><h2 id="v2-title">Throughput is only half the story.</h2></div><span class="tag attention">Semantic review required</span></div>
+        <p class="evidence-context">GPT-5.4 mini 2026-03-17 &middot; 13 matched synthetic cases &middot; active 425-route taxonomy and 850 examples &middot; low reasoning effort &middot; 2,048-token output ceiling. Online service: 600K TPM / 600 RPM; client: 480K TPM / 120 RPM.</p>
+        <div class="callout warning"><strong>All 39 responses were schema-valid. All three acceptance gates failed.</strong><p>Only <strong>1 of 13 records per mode</strong> met every strict gold-field and rule check. Errors included incorrect secondary intents, cause extraction, and confidence preservation. Expected answers and thresholds were not changed to make the experiment pass.</p></div>
+        <div class="table-shell" tabindex="0" role="region" aria-label="V2 complex comparison table"><table><caption>Measured @@V2_DATE@@. Accuracy is scored against withheld synthetic gold labels, not inferred from HTTP success.</caption><thead><tr><th scope="col">Mode</th><th scope="col">Full elapsed</th><th scope="col">Valid outputs</th><th scope="col">429s</th><th scope="col">Primary route</th><th scope="col">Confidence rule</th><th scope="col">All checks</th></tr></thead><tbody>@@V2_ROWS@@</tbody></table></div>
+        <div class="metric-grid"><div class="metric"><strong>32.3K&ndash;32.6K</strong><span>Estimated input tokens per complex request</span></div><div class="metric"><strong>@@V2_INPUT@@</strong><span>API-reported input tokens per 13-record stage</span></div><div class="metric"><strong>@@V2_COST@@</strong><span>Combined model-usage estimate; infrastructure excluded</span></div></div>
+        <div class="grid-two">
+          <div><h3>What the prompt asks the model to do</h3><p>Disambiguate hierarchical intents, ignore menu noise, honor corrections, extract distinct secondary topics, preserve supported facts, suppress synthetic identifier canaries, and apply archived-confidence rules.</p><p class="small">Thirteen cases cover thirteen scenario families, not every route. The strict exact-match rubric is not a general model-quality score; newly generated free-form explanations are not independently evaluated for meaning.</p><div class="evidence-links"><a href="@@REPO@@/tree/main/prompts">Read the actual Markdown prompts &nearr;</a><a href="@@REPO@@/blob/main/scenarios/complex-v2-smoke.json">Open the load scenario &nearr;</a></div></div>
+          <div><h3>Why this matters</h3><p>Removing throttling did not remove analytical errors. A production workload needs both performance measurement and its own accuracy evaluation.</p><p class="small">The model, cache state, request sizes, and grading task differ from v1. The 150K service allocation was not retested in the v2 comparison. Single runs do not establish that concurrency causes a quality difference.</p></div>
+        </div>
+        <div class="evidence-links"><a href="@@REPO@@/blob/main/docs/complex-v2-validation.md">Full v2 report &nearr;</a><a href="data/v2-results.json" download>Download v2 evidence JSON</a><a href="@@REPO@@/blob/main/docs/complex-prompts.md">V2 step-by-step guide &nearr;</a><a href="@@REPO@@/releases/tag/v0.2.0">V2 release &nearr;</a></div>
+      </section>
+
+      <section id="v3" class="evidence" aria-labelledby="v3-title" data-results-final="@@V3_FINAL@@">
+        <div class="evidence-heading"><div><p class="version">V3 &middot; GPT-5 MINI</p><h2 id="v3-title">One quota. Five client groups.</h2></div>@@V3_STATUS@@</div>
+        <p class="evidence-context">GPT-5 mini 2025-08-07 &middot; US DataZoneStandard &middot; 150K TPM / 150 RPM &middot; unchanged v2 prompts &middot; 1,700 records per mode.</p>
+        <div class="callout warning" id="v3-notice">@@V3_NOTICE@@<p class="small">Evidence snapshot: <time datetime="@@V3_DATETIME@@">@@V3_OBSERVED@@</time>. This is a published snapshot, not a live Azure monitor.</p></div>
+        <div class="table-shell" tabindex="0" role="region" aria-label="V3 sequential and client-group status"><table><caption id="v3-caption">@@V3_CAPTION@@</caption><thead><tr><th scope="col">Mode</th><th scope="col">State</th><th scope="col">Validated</th><th scope="col">Final failures</th><th scope="col">Remaining</th><th scope="col">429 attempts</th><th scope="col">Final duration</th></tr></thead><tbody>@@V3_ROWS@@</tbody></table></div>
+        @@V3_PROGRESS@@
+        @@V3_QUALITY@@
+        <div class="grid-two">
+          <article class="card"><h3>This is not the Azure Batch API.</h3><p>Each of five client-side groups sends its records one at a time; the groups run concurrently against the same online deployment. At 1,700 records, that is exactly <strong>5 &times; 340</strong>.</p><p class="small">The checked public US catalogs did not list GPT-5 mini DataZoneBatch. A retail pricing meter does not prove a deployment SKU is available. Model/SKU availability must be rechecked in your subscription.</p></article>
+          <article class="card"><h3>A controlled reproduction of a pattern.</h3><p>The 150K allocation, three-attempt policy, 90-second request timeout, and 2,048-token output ceiling are explicit test assumptions&mdash;not a claim to reproduce an unknown production environment exactly.</p><p class="small">Bounded initial unpaced traffic, service-guided retries, durable local checkpoints, and a 10-hour admission deadline per mode. Conservative all-attempt model estimate: <strong>@@V3_BUDGET@@</strong>, not an invoice.</p></article>
+        </div>
+        <div class="evidence-links"><a href="@@REPO@@/blob/main/docs/v3-gpt5-mini.md">V3 deployment and run guide &nearr;</a><a href="data/v3-results.json" download>Download the v3 snapshot</a><a href="data/v3-partial-output-sample.json" download>Three actual partial output examples</a><a href="@@REPO@@/releases/tag/v0.3.0">V3 release / status &nearr;</a></div>
+      </section>
+
+      <section id="approach" class="evidence" aria-labelledby="approach-title">
+        <div class="section-heading"><div><p class="kicker">Put the evidence to work</p><h2 id="approach-title">Choose the right execution path.</h2><p>Use the required deadline, supported model/SKU, token demand, and quality bar&mdash;not worker count alone&mdash;to choose an approach.</p></div></div>
+        <div class="grid-three">
+          <article class="card"><h3>Sequential / paced online</h3><p>Start here for a simple baseline or low-latency work. Coordinate request and token pacing, and measure complete record time including retries.</p><a class="card-link" href="@@REPO@@/blob/main/docs/tutorial.md">Local processing guide &rarr;</a></article>
+          <article class="card"><h3>Client-side parallel groups</h3><p>Useful for exposing shared-quota pressure. Five independent streams do not multiply TPM. Keep retries bounded and final failures visible.</p><a class="card-link" href="@@REPO@@/blob/main/docs/v3-gpt5-mini.md">Grouped reproduction guide &rarr;</a></article>
+          <article class="card"><h3>Service-managed Batch</h3><p>Suitable for independent bulk work with flexible turnaround, where the model and residency-compatible Batch SKU are available.</p><a class="card-link" href="@@REPO@@/blob/main/docs/azure-demo.md">Durable Azure Batch guide &rarr;</a></article>
+        </div>
+        <div class="grid-two" style="margin-top:2rem">
+          <div><h3>When you see 429s</h3><ol class="steps"><li><strong>Measure demand and limits.</strong><p>Capture actual prompt/output/reasoning usage and returned rate-limit headers. A tokenizer estimate is not the service's complete accounting.</p></li><li><strong>Coordinate admission and retries.</strong><p>Use shared pacing, respect retry guidance, avoid stacked retry layers, and retain every failed attempt.</p></li><li><strong>Match capacity to the deadline.</strong><p>Review approved quota and cost before increasing allocation. Use service Batch only when its separate quota and asynchronous turnaround fit.</p></li><li><strong>Re-evaluate answer quality.</strong><p>Prompt reduction and model changes can alter accuracy. Keep schema checks, semantic checks, and throughput separate.</p></li></ol></div>
+          <article class="card"><p class="kicker">Existing Microsoft framework</p><h3>Durable work, not a custom workflow engine.</h3><p>The Azure path uses Durable Functions and Durable Task Scheduler: authenticated kickoff, activities, durable timers, and a shared Batch admission coordinator.</p><p>Private Blob artifacts and Table metadata support reconciliation; local runs use SQLite. Managed identity and Entra authentication keep keys out of code.</p><p class="small">The v3 grouped reproduction runs on the client host, not inside the Batch service. Neither local locks nor the cloud coordinator govern unrelated traffic outside their scope.</p><div class="evidence-links"><a href="@@REPO@@/blob/main/docs/architecture.md">Architecture and data flow &nearr;</a><a href="@@REPO@@/blob/main/docs/architecture.excalidraw">Editable diagram source &nearr;</a><a href="@@REPO@@/blob/main/docs/orchestration.md">Framework, recovery, and versioning &nearr;</a></div></article>
+        </div>
+      </section>
+
+      <section id="start" class="evidence" aria-labelledby="start-title">
+        <div class="section-heading"><div><p class="kicker">Explore before deploying</p><h2 id="start-title">Start locally. No Azure charges.</h2><p>The offline dashboard demonstrates the interface with clearly labeled simulated records. It does not submit inference.</p></div></div>
+        <div class="grid-two">
+          <div><div class="command-head"><h3>Open the offline demo</h3><button class="copy-button js-only" type="button" id="copy-command">Copy commands</button></div><pre><code id="quickstart-command">git clone https://github.com/patmeh1/azure-llm-batch-starter.git
+cd azure-llm-batch-starter
+python -m pip install -e ".[dev,cloud]"
+llm-batch dashboard --demo</code></pre><span class="copy-status" id="copy-status" role="status" aria-live="polite"></span><p class="small">Python 3.11+; Python 3.12 is the tested Functions runtime. Open <code>http://127.0.0.1:8501</code> locally. For real runs, follow the sign-in, model availability, residency, and cost review in the deployment guide.</p><div class="actions"><a class="button primary" href="@@REPO@@/releases">Downloads and releases &nearr;</a><a class="button" href="@@REPO@@/blob/main/docs/azure-demo.md">Deploy your own demo</a></div></div>
+          <figure><a href="assets/complex-dashboard-demo.png"><img class="dashboard-image" src="@@DASHBOARD_IMAGE@@" alt="Simulated dashboard showing thirteen schema-valid complex records, with a separate semantic needs-review result." width="1440" height="1900" loading="lazy" decoding="async"></a><figcaption>Illustrative dashboard screenshot: <strong>SIMULATED fixtures</strong>, not benchmark data. Open the image to inspect the full view.</figcaption></figure>
+        </div>
+      </section>
+
+      <section id="resources" class="evidence" aria-labelledby="resources-title">
+        <div class="section-heading"><div><p class="kicker">Everything behind the comparisons</p><h2 id="resources-title">Code, prompts, evidence, and guides.</h2><p>All links below point to public, customer-neutral material. No Azure account access is needed to read the code or evidence.</p></div></div>
+        <div class="resource-grid">@@RESOURCE_CARDS@@</div>
+      </section>
+
+      <section id="methodology" class="evidence" aria-labelledby="methodology-title">
+        <p class="kicker">Read this before drawing conclusions</p><h2 id="methodology-title">What these results do&mdash;and do not&mdash;show.</h2>
+        <div class="limitations"><ul>
+          <li>These are synthetic reference experiments, not production benchmarks, a performance SLA, or a zero-429 guarantee.</li>
+          <li>Compare matched inputs within a test. Different record counts, models, allocations, output budgets, cache states, and prompts are not directly interchangeable.</li>
+          <li>Full wall time includes waiting and failures. Do not infer per-record Batch latency by dividing total turnaround by record count.</li>
+          <li>Schema-valid output is not semantic accuracy. Exact-match synthetic grading has its own limitations and does not replace evaluation on an authorized real workload.</li>
+          <li>Usage estimates apply configured token rates to reported usage. They are not invoices and exclude infrastructure, missing usage, taxes, and billing adjustments.</li>
+          <li>US Data Zone inference is broader than a single resource region. Verify current model/SKU availability, quota, network access, and residency requirements before deployment.</li>
+          <li>This static page is built from committed public evidence. V3 progress is timestamped; it does not refresh directly from the running job or any Azure endpoint.</li>
+          <li>Keep real customer records, credentials, private configuration, and raw cloud logs out of public repositories and demos.</li>
+        </ul></div>
+        <div class="evidence-links"><a href="@@REPO@@/blob/main/docs/metrics.md">Measurement definitions &nearr;</a><a href="@@REPO@@/blob/main/docs/testing.md">Validation and test methodology &nearr;</a><a href="@@REPO@@/blob/main/docs/regions.md">Regions and residency &nearr;</a></div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="wrap"><div class="footer-row"><span>Open-source reference implementation &middot; synthetic data only.</span><span><a href="@@REPO@@/blob/main/LICENSE">MIT license</a> &middot; <a href="@@REPO@@/blob/main/THIRD_PARTY_NOTICES.md">Upstream attribution</a> &middot; <a href="@@REPO@@/issues">Questions and issues</a></span></div><p style="margin:.75rem 0 0">Built from public evidence on @@BUILD_TIME@@. <a href="@@SOURCE_URL@@">View this source snapshot</a>. No analytics, cookies, or live inference calls.</p></div></footer>
+  <script>
+    (() => {
+      document.documentElement.classList.add("js");
+      const toggle = document.getElementById("theme-toggle");
+      const label = document.getElementById("theme-label");
+      function updateThemeLabel() {
+        const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        toggle.setAttribute("aria-label", `Switch to ${next} theme`);
+        label.textContent = next === "dark" ? "Dark" : "Light";
+      }
+      toggle.addEventListener("click", () => {
+        document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        updateThemeLabel();
+      });
+      updateThemeLabel();
+      document.getElementById("copy-command").addEventListener("click", async () => {
+        const status = document.getElementById("copy-status");
+        try {
+          await navigator.clipboard.writeText(document.getElementById("quickstart-command").textContent);
+          status.textContent = "Commands copied.";
+        } catch {
+          status.textContent = "Clipboard access is unavailable. Select and copy the commands above.";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+{
+  "observed_at": "2026-11-09T19:58:33.159679+00:00",
+  "started_at": "2026-11-09T19:52:39.511305+00:00",
+  "execution_status": "running",
+  "specification": {
+    "name": "v3-gpt5-mini-1700",
+    "count": 1700,
+    "seed": 42,
+    "groups": 5,
+    "cooldown_seconds": 65,
+    "stage_timeout_seconds": 36000,
+    "max_estimated_inference_usd": 150.0,
+    "expected_tpm": 150000,
+    "expected_rpm": 150
+  },
+  "workload_profile": {
+    "name": "complex-v2",
+    "prompt_bundle_sha256": "469532c76922192658dd12a81cd842a8b2328d529db6acbb4c433385e30cb4fe",
+    "prompt_files": [
+      "complex-system-v2.md",
+      "complex-taxonomy-v2.md",
+      "complex-user-v2.md"
+    ],
+    "taxonomy_routes": 425,
+    "catalog_examples": 850,
+    "scenario_families": [
+      "direct_need",
+      "stale_candidate",
+      "ivr_distraction",
+      "negated_intent",
+      "corrected_goal",
+      "secondary_topics",
+      "insufficient_source",
+      "partial_evidence",
+      "unresolved_handoff",
+      "ambiguous_tie",
+      "confidence_upgrade",
+      "instruction_in_data",
+      "partial_outcome"
+    ],
+    "purpose": "Synthetic semantic/rule complexity, not a production-equivalence claim",
+    "experiment": "v3-gpt5-mini-client-groups",
+    "transport": "online-chat-completions",
+    "batch_api_used": false,
+    "groups": 5,
+    "records_per_group": 340,
+    "pacing": "unpaced_initial_attempts_with_bounded_service_guided_retries"
+  },
+  "configured_model": {
+    "model_name": "gpt-5-mini",
+    "model_version": "2025-08-07",
+    "region": "southcentralus",
+    "rpm": 150,
+    "tpm": 150000,
+    "concurrency": 5,
+    "max_output_tokens": 2048,
+    "reasoning_effort": "low",
+    "max_run_cost_usd": 75.0,
+    "observe_service_throttling": true,
+    "observation_profile": "full-reproduction",
+    "input_price_per_million": 0.275,
+    "cached_input_price_per_million": 0.0275,
+    "output_price_per_million": 2.2,
+    "batch_discount": 0.5
+  },
+  "conservative_all_attempts_estimate_usd": 137.04740940000002,
+  "elapsed_seconds_including_waits": 353.647373,
+  "results_final": false,
+  "runs": [
+    {
+      "mode": "sequential",
+      "status": "running",
+      "record_count": 1700,
+      "succeeded": 31,
+      "failed": 0,
+      "pending": 1669,
+      "elapsed_seconds": 353.034554,
+      "completed_records_per_minute": 5.268606086643858,
+      "http_attempts": 51,
+      "errors_429": 20,
+      "retry_wait_seconds": 89.19700000000002,
+      "input_tokens": 947913,
+      "output_tokens": 21213,
+      "cached_tokens": 906240,
+      "reasoning_tokens": 16512,
+      "http_200_latency_p50_seconds": 6.780999999959022,
+      "http_200_latency_p95_seconds": 9.570500000030734,
+      "successful_record_elapsed_mean_seconds": 10.329129032257404,
+      "all_record_elapsed_mean_seconds": 10.329129032257404,
+      "record_elapsed_measured_count": 31,
+      "observed_rate_limits": [
+        {
+          "requests_per_minute": "150",
+          "tokens_per_minute": "150000"
+        }
+      ],
+      "priced_usage_estimate_usd": 0.083050275,
+      "quality": {
+        "profile": "complex-v2",
+        "expected_records": 1700,
+        "evaluated_records": 31,
+        "not_evaluated_records": 1669,
+        "passed_records": 2,
+        "fully_correct_fraction_of_all_records": 0.001176470588235294,
+        "exact_match_fraction_of_evaluated": 0.06451612903225806,
+        "field_accuracy": {
+          "cause_explanation": 0.2903225806451613,
+          "cause_group": 0.5483870967741935,
+          "confidence": 0.7741935483870968,
+          "confidence_basis": 1.0,
+          "impact": 1.0,
+          "improvements": 0.22580645161290322,
+          "prevention": 1.0,
+          "prevention_reason": 0.5161290322580645,
+          "primary_route": 0.9032258064516129,
+          "resolution": 0.8387096774193549,
+          "secondary_routes": 0.41935483870967744
+        },
+        "constraint_compliance": {
+          "confidence_bounds": 1.0,
+          "confidence_never_lowered": 1.0,
+          "identifier_suppression": 1.0,
+          "immutable_archived_confidence": 1.0,
+          "improvement_limit_and_distinctness": 1.0,
+          "secondary_limit_and_distinctness": 1.0,
+          "taxonomy_membership": 1.0
+        },
+        "scenario_breakdown": {
+          "direct_need": {
+            "records": 3,
+            "evaluated": 3,
+            "passed": 0
+          },
+          "stale_candidate": {
+            "records": 3,
+            "evaluated": 3,
+            "passed": 0
+          },
+          "ivr_distraction": {
+            "records": 3,
+            "evaluated": 3,
+            "passed": 0
+          },
+          "negated_intent": {
+            "records": 3,
+            "evaluated": 3,
+            "passed": 0
+          },
+          "corrected_goal": {
+            "records": 3,
+            "evaluated": 3,
+            "passed": 0
+          },
+          "secondary_topics": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 0
+          },
+          "insufficient_source": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 2
+          },
+          "partial_evidence": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 0
+          },
+          "unresolved_handoff": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 0
+          },
+          "ambiguous_tie": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 0
+          },
+          "confidence_upgrade": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 0
+          },
+          "instruction_in_data": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 0
+          },
+          "partial_outcome": {
+            "records": 2,
+            "evaluated": 2,
+            "passed": 0
+          }
+        },
+        "grading_note": "Deterministic synthetic gold checks. Free-form newly generated confidence explanations are checked for presence and canary suppression, not independently judged for semantic truth."
+      },
+      "semantic_status": "not_fully_evaluated",
+      "gate": null,
+      "client_groups": []
+    },
+    {
+      "mode": "client-batch",
+      "status": "pending",
+      "record_count": 1700,
+      "succeeded": null,
+      "failed": null,
+      "pending": null,
+      "elapsed_seconds": null,
+      "completed_records_per_minute": null,
+      "http_attempts": null,
+      "errors_429": null,
+      "retry_wait_seconds": null,
+      "input_tokens": null,
+      "output_tokens": null,
+      "cached_tokens": null,
+      "reasoning_tokens": null,
+      "http_200_latency_p50_seconds": null,
+      "http_200_latency_p95_seconds": null,
+      "successful_record_elapsed_mean_seconds": null,
+      "all_record_elapsed_mean_seconds": null,
+      "record_elapsed_measured_count": null,
+      "observed_rate_limits": null,
+      "priced_usage_estimate_usd": null,
+      "quality": null,
+      "semantic_status": null,
+      "gate": null,
+      "client_groups": []
+    }
+  ]
+}

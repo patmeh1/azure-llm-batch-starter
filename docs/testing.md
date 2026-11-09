@@ -95,3 +95,9 @@ JSON evidence. Passing offline CI alone does not establish Azure deployment or
 inference success.
 The [v2 complex report](complex-v2-validation.md) separately records the
 13-case live comparison and its semantic acceptance failures.
+
+V3 adds tests for exact contiguous 5x340 grouping, parallel groups with ordered
+records, unchanged v2 prompt hashes, budget/deadline preservation across resume,
+explicit ambiguous online outcomes, and US online-only preflight behavior.
+Its full live experiment is separately labeled in [v3 results](v3-results.md);
+passing offline tests is not a claim that the long run has completed.

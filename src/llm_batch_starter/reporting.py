@@ -104,6 +104,14 @@ def summarize_documents(
     expected = run["record_count"]
     quality = summarize_quality(records, expected)
     correctness = [item["label_correct"] for item in records if "label_correct" in item]
+    record_durations = [
+        item["elapsed_seconds"] for item in records if item.get("elapsed_seconds") is not None
+    ]
+    good_durations = [
+        item["elapsed_seconds"]
+        for item in records
+        if item["status"] == "succeeded" and item.get("elapsed_seconds") is not None
+    ]
     buckets: dict[str, dict[str, int]] = {}
     for item in attempts:
         minute = item.get("requested_at", item["at"])[:16]
@@ -158,6 +166,13 @@ def summarize_documents(
         "reasoning_tokens": reasoning,
         "http_200_latency_p50_seconds": percentile(successful_latencies, 0.5),
         "http_200_latency_p95_seconds": percentile(successful_latencies, 0.95),
+        "successful_record_elapsed_mean_seconds": sum(good_durations) / len(good_durations)
+        if good_durations
+        else None,
+        "all_record_elapsed_mean_seconds": sum(record_durations) / len(record_durations)
+        if record_durations
+        else None,
+        "record_elapsed_measured_count": len(record_durations),
         "priced_usage_estimate_usd": priced_cost,
         "cost_note": "Configured retail rates applied to reported usage, not an Azure invoice or full infrastructure cost.",
         "label_accuracy": sum(correctness) / len(correctness) if correctness else None,

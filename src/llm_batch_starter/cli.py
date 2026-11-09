@@ -271,6 +271,97 @@ def cancel(
         store.close()
 
 
+@app.command("v3-config")
+def v3_config(
+    base_config: Path,
+    output: Path = Path(".azure/v3-config.json"),
+    deployment: str = "gpt5-mini-online",
+) -> None:
+    """Create a separate private GPT-5 mini configuration; does not deploy or invoke Azure."""
+    settings = load_settings(
+        base_config,
+        model_name="gpt-5-mini",
+        model_version="2025-08-07",
+        online_deployment=deployment,
+        batch_deployment="not-supported-for-v3",
+        input_price_per_million=0.275,
+        cached_input_price_per_million=0.0275,
+        output_price_per_million=2.2,
+        rpm=150,
+        tpm=150000,
+        max_run_cost_usd=75,
+        observe_service_throttling=False,
+        observation_profile="bounded-burst",
+        max_http_attempts=10000,
+        run_timeout_seconds=3600,
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("x", encoding="utf-8") as stream:
+        stream.write(settings.model_dump_json(indent=2))
+    emit(
+        {
+            "config": str(output),
+            "model": settings.model_name,
+            "note": "Private file; verify model deployment, Data Zone SKU, quota, and current prices before use.",
+        }
+    )
+
+
+@app.command("v3-run")
+def v3_run(
+    scenario: Annotated[Path, typer.Option("--scenario")],
+    config: ConfigPath = None,
+    output: Path = Path("outputs/v3"),
+    yes: bool = False,
+) -> None:
+    """Preview or explicitly run the long GPT-5 mini sequential/five-group comparison."""
+    from .reproduction import ReproductionSpec, execute_reproduction, plan_reproduction
+
+    spec = ReproductionSpec.model_validate_json(scenario.read_text(encoding="utf-8"))
+    settings = load_settings(config)
+    if not yes:
+        emit(plan_reproduction(spec, settings))
+        return
+    result = execute_reproduction(
+        spec,
+        settings,
+        output,
+        on_created=lambda path: emit({"experiment": str(path), "status": "checkpoint_created"}),
+    )
+    emit(result)
+    raise typer.Exit(0 if result["status"] == "completed" else 1)
+
+
+@app.command("v3-status")
+def v3_status(experiment: Path) -> None:
+    """Read checkpointed progress without inference or a second runner."""
+    from .reproduction import reproduction_status
+
+    emit(reproduction_status(experiment))
+
+
+@app.command("v3-resume")
+def v3_resume(experiment: Path, yes: bool = False) -> None:
+    """Resume the same saved experiment without resetting budgets or repeating known records."""
+    from .reproduction import resume_reproduction
+
+    if not yes:
+        typer.confirm(
+            "Resume the existing experiment with its original attempt/time/cost limits?", abort=True
+        )
+    result = resume_reproduction(experiment)
+    emit(result)
+    raise typer.Exit(0 if result["status"] == "completed" else 1)
+
+
+@app.command("v3-export")
+def v3_export(experiment: Path, output: Path) -> None:
+    """Export allowlisted synthetic metrics and terminal outputs without private Azure context."""
+    from .reproduction import export_reproduction
+
+    emit(export_reproduction(experiment, output))
+
+
 @app.command("azure-demo")
 def azure_demo(
     config: ConfigPath = None,

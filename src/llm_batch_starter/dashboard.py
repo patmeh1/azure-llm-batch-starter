@@ -230,15 +230,34 @@ def render_dashboard() -> None:
                         "HTTP 200 attempt p95 seconds": detail["http_200_latency_p95_seconds"],
                     }
                 )
+            if detail.get("successful_record_elapsed_mean_seconds") is not None:
+                st.write(
+                    {
+                        "Successful-record elapsed mean (includes retries)": detail[
+                            "successful_record_elapsed_mean_seconds"
+                        ],
+                        "All measured-record elapsed mean": detail.get(
+                            "all_record_elapsed_mean_seconds"
+                        ),
+                        "Records with elapsed measurements": detail.get(
+                            "record_elapsed_measured_count"
+                        ),
+                    }
+                )
             st.caption(detail["cost_note"])
             st.write({"Reported-usage cost estimate (USD)": detail["priced_usage_estimate_usd"]})
             st.subheader("Batch partitions")
+            if detail["mode"] == "client-batch":
+                st.caption(
+                    "Client-side groups share one online deployment. These are not Azure Batch API jobs."
+                )
             batch_rows = []
             for job in detail["jobs"]:
                 start = job.get("submitted_at") or job.get("created_at")
                 batch_rows.append(
                     {
                         "partition": job["id"],
+                        "kind": job.get("kind", "service_batch"),
                         "status": job["status"],
                         "elapsed_seconds": elapsed_between(start, job.get("completed_at"))
                         if start

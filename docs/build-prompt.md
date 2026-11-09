@@ -67,3 +67,21 @@ preview by default. Persist run IDs before paid submission, preserve pending
 work, and use client/worker prompt-bundle hashes to reject mismatches. Report
 schema-valid processing separately from semantic quality. Publish measured
 quality failures without altering expected answers to make the experiment pass.
+
+## V3 extension
+
+Keep v2 prompts/schema immutable and add a separate GPT-5 mini US
+DataZoneStandard deployment without replacing existing models. Verify exact
+regional SKU availability; pricing meters alone do not prove deployability.
+If service Batch is unavailable, obtain operator approval before using a
+clearly labeled client-side grouped comparison.
+
+Compare 1,700 sequential online requests against five fixed concurrent streams
+of 340 using the same synthetic inputs. Preserve bounded retries, original
+deadlines, conservative cost/attempt reservations, durable checkpoints, and
+unknown in-flight outcomes across resume. Never blindly replay a paid online
+request whose response is unknown.
+
+Provide a guide and allowlisted output exports. Keep live results explicitly
+pending until both modes are terminal. Report test assumptions and measured
+limits without claiming exact reproduction of an unknown production system.

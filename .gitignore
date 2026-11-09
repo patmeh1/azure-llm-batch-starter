@@ -36,3 +36,4 @@ services/orchestrator/llm_batch_starter/
 node_modules/
 test-results/
 playwright-report/
+infra/v3-model.json

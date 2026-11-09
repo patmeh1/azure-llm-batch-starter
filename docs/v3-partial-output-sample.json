@@ -1,0 +1,184 @@
+{
+  "observed_at": "2026-11-09T20:04:01.121928+00:00",
+  "results_final": false,
+  "scope": "First three completed sequential records only; not a full benchmark or overall quality claim.",
+  "model": "gpt-5-mini",
+  "model_version": "2025-08-07",
+  "profile": "complex-v2",
+  "mode": "sequential",
+  "records": [
+    {
+      "id": "complex-000000",
+      "status": "succeeded",
+      "error": null,
+      "status_code": null,
+      "attempts": 1,
+      "elapsed_seconds": 13.84399999998277,
+      "result": {
+        "cause_explanation": "Before applying, I need to know what makes someone eligible for obtaining the operating manual for an item.",
+        "cause_group": "Documentation",
+        "confidence": 81,
+        "confidence_basis": "Archived automated review; not independently verified.",
+        "impact": "Severe",
+        "improvements": [
+          "HelpCenter",
+          "WorkflowAutomation"
+        ],
+        "prevention": "Yes",
+        "prevention_reason": "Documentation",
+        "primary_route": "R212",
+        "resolution": "Resolved",
+        "secondary_routes": [
+          "R214"
+        ]
+      },
+      "quality": {
+        "constraint_checks": {
+          "confidence_bounds": true,
+          "confidence_never_lowered": true,
+          "identifier_suppression": true,
+          "immutable_archived_confidence": true,
+          "improvement_limit_and_distinctness": true,
+          "secondary_limit_and_distinctness": true,
+          "taxonomy_membership": true
+        },
+        "evaluated": true,
+        "field_checks": {
+          "cause_explanation": false,
+          "cause_group": true,
+          "confidence": true,
+          "confidence_basis": true,
+          "impact": true,
+          "improvements": false,
+          "prevention": true,
+          "prevention_reason": true,
+          "primary_route": true,
+          "resolution": true,
+          "secondary_routes": false
+        },
+        "passed": false,
+        "profile": "complex-v2",
+        "scenario": "direct_need"
+      },
+      "usage": {
+        "prompt_tokens": 30566,
+        "completion_tokens": 527
+      }
+    },
+    {
+      "id": "complex-000001",
+      "status": "succeeded",
+      "error": null,
+      "status_code": null,
+      "attempts": 1,
+      "elapsed_seconds": 6.64100000000326,
+      "result": {
+        "cause_explanation": "Tell me the prerequisites and limits that govern retrieving a package from an unattended collection cabinet, rather than how to apply.",
+        "cause_group": "Documentation",
+        "confidence": 88,
+        "confidence_basis": "Archived automated review; not independently verified.",
+        "impact": "Moderate",
+        "improvements": [
+          "HelpCenter",
+          "SelfService"
+        ],
+        "prevention": "Yes",
+        "prevention_reason": "Workflow",
+        "primary_route": "R012",
+        "resolution": "Resolved",
+        "secondary_routes": [
+          "R014"
+        ]
+      },
+      "quality": {
+        "constraint_checks": {
+          "confidence_bounds": true,
+          "confidence_never_lowered": true,
+          "identifier_suppression": true,
+          "immutable_archived_confidence": true,
+          "improvement_limit_and_distinctness": true,
+          "secondary_limit_and_distinctness": true,
+          "taxonomy_membership": true
+        },
+        "evaluated": true,
+        "field_checks": {
+          "cause_explanation": false,
+          "cause_group": false,
+          "confidence": true,
+          "confidence_basis": true,
+          "impact": true,
+          "improvements": false,
+          "prevention": true,
+          "prevention_reason": false,
+          "primary_route": true,
+          "resolution": true,
+          "secondary_routes": false
+        },
+        "passed": false,
+        "profile": "complex-v2",
+        "scenario": "stale_candidate"
+      },
+      "usage": {
+        "prompt_tokens": 30570,
+        "completion_tokens": 594
+      }
+    },
+    {
+      "id": "complex-000002",
+      "status": "succeeded",
+      "error": null,
+      "status_code": null,
+      "attempts": 1,
+      "elapsed_seconds": 5.842999999993481,
+      "result": {
+        "cause_explanation": "When I attempted the function for stopping an existing purchase before fulfillment, it stopped behaving as expected.",
+        "cause_group": "Workflow",
+        "confidence": 90,
+        "confidence_basis": "Caller explicitly reports the cancellation function failed, the specialist acknowledged an internal gap and potential prevention, and the caller confirms the issue is now resolved.",
+        "impact": "Minor",
+        "improvements": [
+          "WorkflowAutomation"
+        ],
+        "prevention": "Yes",
+        "prevention_reason": "Workflow",
+        "primary_route": "R144",
+        "resolution": "Resolved",
+        "secondary_routes": [
+          "R143"
+        ]
+      },
+      "quality": {
+        "constraint_checks": {
+          "confidence_bounds": true,
+          "confidence_never_lowered": true,
+          "identifier_suppression": true,
+          "immutable_archived_confidence": true,
+          "improvement_limit_and_distinctness": true,
+          "secondary_limit_and_distinctness": true,
+          "taxonomy_membership": true
+        },
+        "evaluated": true,
+        "field_checks": {
+          "cause_explanation": false,
+          "cause_group": true,
+          "confidence": true,
+          "confidence_basis": true,
+          "impact": true,
+          "improvements": true,
+          "prevention": true,
+          "prevention_reason": true,
+          "primary_route": true,
+          "resolution": true,
+          "secondary_routes": false
+        },
+        "passed": false,
+        "profile": "complex-v2",
+        "scenario": "ivr_distraction"
+      },
+      "usage": {
+        "prompt_tokens": 30565,
+        "completion_tokens": 540
+      }
+    }
+  ]
+}

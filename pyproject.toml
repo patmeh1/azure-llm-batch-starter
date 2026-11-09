@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "azure-llm-batch-starter"
-version = "0.2.0"
+version = "0.3.0"
 description = "Durable Azure OpenAI Batch automation, honest timing, and a local operations dashboard."
 readme = "README.md"
 requires-python = ">=3.11"

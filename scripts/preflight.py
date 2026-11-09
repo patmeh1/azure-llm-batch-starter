@@ -29,6 +29,11 @@ def main():
     parser.add_argument("--version", default="2026-03-17")
     parser.add_argument("--online-capacity", type=int, default=150)
     parser.add_argument("--batch-capacity", type=int, default=10000)
+    parser.add_argument(
+        "--online-only",
+        action="store_true",
+        help="Validate only US DataZoneStandard; no Batch or orchestration support is implied.",
+    )
     args = parser.parse_args()
     uuid.UUID(args.subscription)
     if not re.fullmatch(r"[a-z0-9]+", args.region):
@@ -68,10 +73,11 @@ def main():
     )
     quota = {entry["name"]["value"]: entry for entry in usage}
     checks = []
-    for kind, requested in (
+    targets = [
         ("DataZoneStandard", args.online_capacity),
         ("DataZoneBatch", args.batch_capacity),
-    ):
+    ]
+    for kind, requested in targets[:1] if args.online_only else targets:
         if kind not in skus:
             raise SystemExit(
                 f"{args.model} {args.version} does not list {kind} in {args.region}. No fallback performed."
@@ -86,6 +92,24 @@ def main():
         )
         if available < requested:
             raise SystemExit(f"Insufficient unallocated quota for {kind}.")
+    if args.online_only:
+        if models[0].get("capabilities", {}).get("area") != "US":
+            raise SystemExit("V3 requires a catalog-confirmed US Data Zone region.")
+        print(
+            json.dumps(
+                {
+                    "region": args.region,
+                    "model": args.model,
+                    "version": args.version,
+                    "quota": checks,
+                    "scope": "online_only",
+                    "batch_support_asserted": False,
+                    "note": "Catalog/quota checks are not a capacity guarantee. No resource changes were made.",
+                },
+                indent=2,
+            )
+        )
+        return
     flex = az("functionapp", "list-flexconsumption-locations", "--subscription", args.subscription)
     if args.region not in [item["name"] for item in flex]:
         raise SystemExit("Functions Flex does not list the selected region.")

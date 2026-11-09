@@ -31,8 +31,14 @@ def run_pipeline(
 ) -> dict[str, Any]:
     invocation_started_at = utc_now()
     preparation_started = time.perf_counter()
-    if mode not in {"sequential", "parallel", "batch"}:
+    if mode not in {"sequential", "parallel", "client-batch", "batch"}:
         raise ValueError("Invalid processing mode")
+    if settings.observation_profile == "full-reproduction" and (
+        len(records) > 1700 or mode not in {"sequential", "client-batch"}
+    ):
+        raise ValueError(
+            "Full reproduction is limited to 1700 records in sequential/client-batch modes"
+        )
     partitions = prepare_requests(records, settings)
     estimate = estimate_cost(records, settings, batch=mode == "batch")
     if estimate["estimated_inference_usd"] > settings.max_run_cost_usd:
@@ -95,7 +101,13 @@ def run_pipeline(
                 )
             else:
                 run_online(
-                    records, settings, store, run_id, actual_provider, parallel=mode == "parallel"
+                    records,
+                    settings,
+                    store,
+                    run_id,
+                    actual_provider,
+                    parallel=mode in {"parallel", "client-batch"},
+                    client_groups=settings.concurrency if mode == "client-batch" else None,
                 )
         return export_results(store, run_id, directory)
     finally:

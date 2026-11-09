@@ -61,6 +61,7 @@ class Settings(BaseModel):
     output_price_per_million: float = Field(default=4.95, ge=0)
     batch_discount: float = Field(default=0.5, gt=0, le=1)
     observe_service_throttling: bool = False
+    observation_profile: Literal["bounded-burst", "full-reproduction"] = "bounded-burst"
     max_http_attempts: int = Field(default=10000, ge=1)
     storage_account: str = ""
     scheduler_endpoint: str = ""
@@ -92,7 +93,21 @@ class Settings(BaseModel):
             raise ValueError("output budget must be smaller than the context limit")
         if self.max_poll_seconds < self.poll_seconds:
             raise ValueError("max_poll_seconds must be at least poll_seconds")
-        if self.observe_service_throttling and (
+        if self.observation_profile == "full-reproduction":
+            if (
+                not self.observe_service_throttling
+                or self.model_name != "gpt-5-mini"
+                or self.model_version != "2025-08-07"
+                or self.max_http_attempts > 5100
+                or self.run_timeout_seconds > 36000
+                or self.max_attempts > 3
+                or self.concurrency > 5
+                or self.max_run_cost_usd > 75
+            ):
+                raise ValueError(
+                    "Full reproduction requires the pinned model and bounded attempts/time/cost"
+                )
+        elif self.observe_service_throttling and (
             self.max_http_attempts > 100 or self.run_timeout_seconds > 600
         ):
             raise ValueError("unpaced observation requires at most 100 attempts and 600 seconds")
@@ -105,9 +120,10 @@ class Settings(BaseModel):
         return self.endpoint.rstrip("/").removesuffix("/openai/v1") + "/openai/v1/"
 
     def fingerprint(self) -> str:
-        return hashlib.sha256(
-            self.model_dump_json(exclude={"scheduler_endpoint", "task_hub"}).encode()
-        ).hexdigest()
+        excluded = {"scheduler_endpoint", "task_hub"}
+        if self.observation_profile == "bounded-burst":
+            excluded.add("observation_profile")
+        return hashlib.sha256(self.model_dump_json(exclude=excluded).encode()).hexdigest()
 
     def public_metadata(self) -> dict[str, Any]:
         fields = (
@@ -121,6 +137,7 @@ class Settings(BaseModel):
             "reasoning_effort",
             "max_run_cost_usd",
             "observe_service_throttling",
+            "observation_profile",
             "input_price_per_million",
             "cached_input_price_per_million",
             "output_price_per_million",

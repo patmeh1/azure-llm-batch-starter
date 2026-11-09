@@ -1,0 +1,11 @@
+{
+  "name": "v3-gpt5-mini-1700",
+  "count": 1700,
+  "seed": 42,
+  "groups": 5,
+  "cooldown_seconds": 65,
+  "stage_timeout_seconds": 36000,
+  "max_estimated_inference_usd": 150,
+  "expected_tpm": 150000,
+  "expected_rpm": 150
+}

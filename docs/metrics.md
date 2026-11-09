@@ -7,6 +7,8 @@
 | End-to-end elapsed seconds | The longer of observed application and current orchestration wall time; recovery does not erase prior waiting/work |
 | Completed records/minute | Successfully validated records / full wall time |
 | HTTP attempt duration | Client-observed call duration, not pure GPU inference time |
+| Successful-record elapsed mean | Complete record elapsed, including retries, for successful records with measured duration |
+| All-record elapsed mean | Complete record elapsed across successful and failed records with measured duration; measurement count is reported |
 | Record elapsed time | Admission waits, attempts, retries, and validation |
 | Retry waiting | Actual recorded backoff sleep, not inferred from response latency |
 | Stage aggregates | Time accumulated for that stage; parallel stages may overlap |
@@ -28,6 +30,9 @@
 
 - Successful-record average excludes failed work; whole-job throughput must not.
 - Five parallel attempts are not five independently provisioned model capacities.
+- V3 `client-batch` uses five fixed client-side online streams, not the
+  service-managed `batch` mode. Unknown in-flight durations after interruption
+  remain missing rather than zero.
 - Batch queue/turnaround time is not per-record model inference latency.
 - Do not divide Batch wall time by records and label it inference latency.
 - Azure's enforcement windows and competing traffic are not reproduced exactly

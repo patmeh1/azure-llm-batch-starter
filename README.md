@@ -16,6 +16,8 @@ All examples are synthetic. No Azure credentials or customer content are include
 | Process a JSONL file and compare modes | [Local tutorial](docs/tutorial.md) |
 | Investigate token limits, retries, and 429s | [Load testing](docs/load-testing.md) |
 | Run complex synthetic prompts stored in Markdown | [V2 complex workload](docs/complex-prompts.md) |
+| Compare GPT-5 mini sequential calls with five groups of 340 | [V3 reproduction guide](docs/v3-gpt5-mini.md) |
+| Inspect the full v3 experiment's current evidence | [V3 results/status](docs/v3-results.md) |
 | Review v2 timing and failed semantic acceptance gates | [V2 measured results](docs/complex-v2-validation.md) |
 | Understand the reusable Microsoft framework | [Orchestration](docs/orchestration.md) |
 | Review topology, authentication, and data flow | [Architecture](docs/architecture.md) |
@@ -69,6 +71,18 @@ See the [complete v2 tutorial](docs/complex-prompts.md).
 The [live v2 comparison](docs/complex-v2-validation.md) completed all three
 processing modes without observed 429s, but failed semantic quality thresholds.
 Those failures remain visible in the evidence and dashboard.
+
+## V3 GPT-5 mini grouped-request experiment
+
+Version **0.3.0** adds an additive US DataZoneStandard model template and a
+checkpointed 1,700-record sequential versus five-by-340 `client-batch` comparison.
+It reuses the v2 Markdown prompts unchanged and preserves v2 deployments.
+Client-side grouping is explicitly **not the Azure Batch API**; the checked
+GPT-5 mini regional catalogs did not list DataZoneBatch.
+
+The full live comparison can take many hours. Its [results/status](docs/v3-results.md)
+remain marked pending until both modes finish. See the [v3 guide](docs/v3-gpt5-mini.md)
+for assumptions, budget/attempt/deadline guards, resume behavior, and output export.
 
 ## Real Azure demo
 

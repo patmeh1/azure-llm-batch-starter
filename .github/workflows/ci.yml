@@ -36,6 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: az bicep build --file infra/main.bicep --outfile /tmp/batch-template.json
+      - run: az bicep build --file infra/v3-model.bicep --outfile /tmp/v3-model-template.json
   browser:
     runs-on: ubuntu-latest
     steps:

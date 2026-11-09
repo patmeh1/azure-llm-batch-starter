@@ -16,6 +16,7 @@ All examples are synthetic. No Azure credentials or customer content are include
 | Process a JSONL file and compare modes | [Local tutorial](docs/tutorial.md) |
 | Investigate token limits, retries, and 429s | [Load testing](docs/load-testing.md) |
 | Run complex synthetic prompts stored in Markdown | [V2 complex workload](docs/complex-prompts.md) |
+| Review v2 timing and failed semantic acceptance gates | [V2 measured results](docs/complex-v2-validation.md) |
 | Understand the reusable Microsoft framework | [Orchestration](docs/orchestration.md) |
 | Review topology, authentication, and data flow | [Architecture](docs/architecture.md) |
 | Understand what each measurement actually means | [Metrics](docs/metrics.md) |
@@ -65,6 +66,9 @@ only after reviewing it to compare sequential, paced parallel, and actual cloud
 Batch on the same complex cases. Reports and the dashboard distinguish
 **schema success from semantic accuracy and rule compliance**.
 See the [complete v2 tutorial](docs/complex-prompts.md).
+The [live v2 comparison](docs/complex-v2-validation.md) completed all three
+processing modes without observed 429s, but failed semantic quality thresholds.
+Those failures remain visible in the evidence and dashboard.
 
 ## Real Azure demo
 

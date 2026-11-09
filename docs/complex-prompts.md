@@ -10,6 +10,10 @@ without copying a customer's policies, wording, business labels, or records.
 This is not a claim that the benchmark matches any production workload's
 accuracy, reasoning difficulty, or latency.
 
+See the [measured v2 results](complex-v2-validation.md): all outputs processed,
+but the original acceptance gates failed. The benchmark reports these model
+errors instead of presenting schema validity as correctness.
+
 ## The actual prompts are Markdown files
 
 | File in `prompts` | Runtime use |

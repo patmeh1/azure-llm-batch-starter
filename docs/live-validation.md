@@ -1,5 +1,10 @@
 # Live Azure validation
 
+This report preserves the original **v1** compact/filler-workload measurements.
+For active complex Markdown prompts, use the separate
+[v2 validation report](complex-v2-validation.md), including its failed quality
+gates. The two profiles are not token- or complexity-matched.
+
 These are **measured synthetic experiments**, not simulated dashboard rows,
 production benchmarks, or throughput guarantees. Measurements were collected
 on 2026-11-07 UTC. The [machine-readable evidence](live-results.json) contains

@@ -93,3 +93,5 @@ Real cloud validation remains required for claims about the deployed workflow.
 See the [measured live validation report](live-validation.md) and its sanitized
 JSON evidence. Passing offline CI alone does not establish Azure deployment or
 inference success.
+The [v2 complex report](complex-v2-validation.md) separately records the
+13-case live comparison and its semantic acceptance failures.

@@ -7,6 +7,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
+from .quality import annotate_result
 from .synthetic import Record
 
 
@@ -100,13 +101,7 @@ def reconcile_results(
                 }
             else:
                 outcome = validate_completion(response.get("body") or {}, schema)
-        outcome.update(id=record_id, expected_label=record.expected_label)
+        annotate_result(record, outcome)
         outcome.setdefault("retryable", is_retryable(outcome))
-        if (
-            outcome["status"] == "succeeded"
-            and record.expected_label
-            and isinstance(outcome["result"], dict)
-        ):
-            outcome["label_correct"] = outcome["result"].get("category") == record.expected_label
         results.append(outcome)
     return results, issues

@@ -9,6 +9,7 @@ import tiktoken
 from jsonschema import Draft202012Validator
 
 from .config import Settings
+from .quality import validate_expectations
 from .synthetic import Record, generate_dataset
 
 
@@ -93,6 +94,7 @@ def estimate_cost(records: list[Record], settings: Settings, *, batch: bool) -> 
 
 def prepare_requests(records: list[Record], settings: Settings) -> list[Partition]:
     Draft202012Validator.check_schema(settings.output_schema)
+    validate_expectations(records, settings.output_schema)
     ids = [r.id for r in records]
     if not records or len(ids) != len(set(ids)):
         raise ValueError("Records must be nonempty and have unique IDs")

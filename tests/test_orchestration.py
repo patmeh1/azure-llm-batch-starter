@@ -144,7 +144,7 @@ def test_recovery_uses_fresh_history_but_the_same_saved_partitions():
         steps.send({"status": "succeeded"})
 
 
-def test_cancellation_can_arrive_before_bootstrap_persists_the_run(monkeypatch):
+def test_cancellation_can_arrive_before_bootstrap_persists_the_run(monkeypatch, function_handlers):
     saved = []
 
     class Store:
@@ -155,10 +155,6 @@ def test_cancellation_can_arrive_before_bootstrap_persists_the_run(monkeypatch):
             pass
 
     monkeypatch.setattr(function_app, "AzureState", lambda settings: Store())
-    handler = next(
-        f
-        for f in function_app.app.get_functions()
-        if f.get_function_name() == "request_run_cancellation"
-    ).get_user_function()
+    handler = function_handlers["request_run_cancellation"]
     assert handler({"run_id": "new-run"})["status"] == "cancellation_requested"
     assert saved == [("control", "new-run", "cancel", {"requested": True})]

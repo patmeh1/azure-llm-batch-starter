@@ -24,6 +24,9 @@ Coverage includes deterministic input generation, duplicate IDs, input limits,
 partitioning, retry header parsing, refusal/truncation handling, missing/duplicate
 results, local orchestration, quota reservations, dashboard rendering, and
 whole-run timing.
+V2 adds catalog/Markdown integrity, all thirteen complex case families, gold
+label exclusion from requests, semantic-versus-schema checks, legacy-record
+fingerprint compatibility, budget previews, and a native packaging-hook test.
 
 Mocks/fixtures verify logic, **not Azure deployment success**.
 
@@ -61,6 +64,16 @@ monitoring the returned run ID.
 Follow with a same-data 100-record mode comparison and, when affordable, a
 1,700-record cloud correctness run. Keep large-input stress runs separately
 identified; see [load testing](load-testing.md).
+
+For complex synthetic prompts, start with the dry-run
+`llm-batch load-test --scenario scenarios\complex-v2-smoke.json --config .azure\demo-config.json`.
+Follow the [v2 tutorial](complex-prompts.md) before enabling paid execution.
+The load-test gate includes quality thresholds and can fail even when every
+API response passes its JSON schema.
+The manually dispatched, disabled-by-default live workflow also offers a
+`complex-v2` profile, selecting thirteen cases and the same quality checks.
+It still requires the protected Azure environment and explicit charge approval;
+no credentials or recurring paid automation are configured by this repository.
 
 ## Reproducibility
 

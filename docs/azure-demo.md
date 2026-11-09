@@ -144,6 +144,17 @@ llm-batch azure-demo --count 100 --config .azure\demo-config.json
 llm-batch azure-demo --count 1700 --config .azure\demo-config.json
 ```
 
+Those commands use the original compact profile. After deploying version 0.2.0,
+start the separate complex workload with a small count:
+
+```powershell
+llm-batch azure-demo --profile complex-v2 --count 13 --config .azure\demo-config.json
+```
+
+The complex profile sends a large active taxonomy and multi-field rules, not
+filler. Review its own estimate; a 1,700-record compact test is not cost-equivalent
+to 1,700 complex requests. See [complex load scenarios](complex-prompts.md).
+
 For your own data, provide JSONL records with unique `id` and `text` fields:
 
 ```powershell

@@ -21,6 +21,12 @@ approved direct connectivity and provides the full persisted metadata view.
   observed request/token rates. Raw prompts and response bodies are not shown.
 - **Test timings:** normalized test-suite reports generated under `reports`.
 
+V2 adds a **Workload profiles** filter and **Complex workload quality** section:
+field accuracy, constraint compliance, full-record quality denominator, and
+scenario breakdown. The simulated complex fixture deliberately shows a semantic
+mistake despite schema-valid processing. Real runs retain their own prompt hash
+and separate `semantic_status`.
+
 Use **Refresh metadata** while a run is active. Unknown data is displayed as
 unavailable; a stale view is not evidence that a job stopped.
 

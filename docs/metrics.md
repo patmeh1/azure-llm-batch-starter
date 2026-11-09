@@ -18,6 +18,11 @@
 | Observed TPM | Tokens reported by successful responses in those buckets |
 | 429 count | Observed throttled attempts, separate from final failed records |
 | Test duration | Measured suite and individual-test elapsed time |
+| Complex field accuracy | Exact synthetic gold-field match among evaluated, schema-valid outputs |
+| Complex fully-correct fraction | Records passing every gold/rule check divided by all expected records, including failed/unevaluated work |
+| Constraint compliance | Per-rule pass rate among evaluated complex outputs |
+| Semantic status | Separate from processing success: passed, needs_review, or not_fully_evaluated |
+| Load-matrix gate | Configured acceptance thresholds, not a claim that every field is correct |
 
 ## Do not confuse these
 
@@ -34,6 +39,9 @@
   accuracy has its own denominator and can be below 100% in a successful run.
 - Scheduler metadata has unknown result/error metrics until final reconciliation.
   Remote service request counts are shown separately, not treated as schema-valid results.
+- Complex synthetic gold labels are withheld from the model. The exact-match
+  rubric is stricter than general usefulness; new free-form confidence
+  explanations are not independently evaluated for meaning.
 
 UTC timestamps support cross-process correlation. In-process stages use a
 monotonic timer. Paused/resumed run wall time includes the pause; stage sums are

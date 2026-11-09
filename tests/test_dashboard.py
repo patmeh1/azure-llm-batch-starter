@@ -13,12 +13,16 @@ def test_demo_history_and_details_agree(tmp_path: Path):
     store = State(path, readonly=True)
     try:
         rows = dashboard.load_run_history(store)
-        assert len(rows) == 6
+        assert len(rows) == 7
         partial = dashboard.load_batch_details(store, "simulated-3")
         assert partial["succeeded"] == 94
         assert partial["failed"] == 6
         assert partial["elapsed_seconds"] == 610
         assert all(row["source"] == "simulated" for row in rows)
+        complex_run = dashboard.load_batch_details(store, "simulated-complex-v2")
+        assert complex_run["succeeded"] == 13
+        assert complex_run["quality"]["passed_records"] == 12
+        assert complex_run["semantic_status"] == "needs_review"
     finally:
         store.close()
 
@@ -39,3 +43,13 @@ def test_empty_dashboard_is_explicit(tmp_path: Path, monkeypatch):
     app = AppTest.from_file(str(Path(dashboard.__file__))).run(timeout=30)
     assert not app.exception
     assert any("No local history" in item.value for item in app.info)
+
+
+def test_complex_quality_panel_renders_without_inference(tmp_path: Path, monkeypatch):
+    path = tmp_path / "demo.sqlite3"
+    seed_demo(path)
+    monkeypatch.setenv("LLM_DASHBOARD_STATE", str(path))
+    app = AppTest.from_file(str(Path(dashboard.__file__))).run(timeout=30)
+    app.selectbox[0].select("simulated-complex-v2").run()
+    assert not app.exception
+    assert any(item.value == "Complex workload quality" for item in app.subheader)

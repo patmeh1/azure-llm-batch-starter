@@ -13,6 +13,7 @@ from filelock import FileLock
 from .config import Settings
 from .prepare import estimate_input_tokens
 from .provider import rate_headers
+from .quality import annotate_result
 from .reconcile import validate_completion
 from .retry import AdmissionLimiter, retry_delay
 from .state import State
@@ -148,12 +149,7 @@ def run_online(
             elapsed_seconds=time.monotonic() - started,
             expected_label=record.expected_label,
         )
-        if (
-            outcome["status"] == "succeeded"
-            and record.expected_label
-            and isinstance(outcome["result"], dict)
-        ):
-            outcome["label_correct"] = outcome["result"].get("category") == record.expected_label
+        annotate_result(record, outcome)
         store.save("records", run_id, record.id, outcome)
 
     with FileLock(str(lock_dir / f"{lock_key}.lock"), timeout=0):

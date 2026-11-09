@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from .azure_state import valid_run_id
+from .complex_workload import configure, generate_complex
 from .config import DEFAULT_PROMPT, DEFAULT_SCHEMA, WORKFLOW_VERSION, Settings, credential
 from .prepare import estimate_cost
 from .reporting import summarize_documents
@@ -55,7 +57,9 @@ class SchedulerAccess:
         self.client.close()
         self.identity.close()
 
-    def start_synthetic(self, count: int, seed: int, reference_tokens: int = 0) -> str:
+    def start_synthetic(
+        self, count: int, seed: int, reference_tokens: int = 0, *, run_id: str | None = None
+    ) -> str:
         if not 1 <= count <= 10000 or not 0 <= reference_tokens <= 120000:
             raise ValueError(
                 "Synthetic cloud limits: 1..10000 records, at most 120000 reference tokens"
@@ -72,7 +76,7 @@ class SchedulerAccess:
             > self.settings.max_run_cost_usd
         ):
             raise ValueError("Synthetic input exceeds the client-side inference estimate budget")
-        run_id = uuid.uuid4().hex
+        run_id = valid_run_id(run_id or uuid.uuid4().hex)
         self.registry.save_run(
             {
                 "id": run_id,
@@ -98,7 +102,12 @@ class SchedulerAccess:
         state = self.client.get_orchestration_state(run_id)
         if state is None:
             raise ValueError(f"No scheduler instance found for {run_id}; do not blindly resubmit")
-        if state.name not in {"synthetic_workflow", "retry_workflow", "recovery_workflow"}:
+        if state.name not in {
+            "synthetic_workflow",
+            "complex_workflow",
+            "retry_workflow",
+            "recovery_workflow",
+        }:
             raise ValueError("This instance is not a supported application root")
         payload = json.loads(state.serialized_input or "{}")
         if not isinstance(payload, dict) or not isinstance(payload.get("count"), int):
@@ -126,6 +135,9 @@ class SchedulerAccess:
             "status": status,
             "runtime_status": runtime,
             "record_count": payload.get("count", 0),
+            "workload_profile": result.get("report", {}).get("workload_profile", {})
+            if isinstance(result, dict)
+            else payload.get("workload_profile", {}),
             "parent_run_id": payload.get("parent_run_id"),
             "artifact_run_id": payload.get("artifact_run_id", run_id),
             "started_at": scheduler_timestamp(state.created_at),
@@ -134,7 +146,7 @@ class SchedulerAccess:
             or ("orchestration_failed" if runtime == "failed" else None),
             "metadata": result.get("report", {}).get("metadata", self.settings.public_metadata())
             if isinstance(result, dict)
-            else self.settings.public_metadata(),
+            else payload.get("generation", self.settings.public_metadata()),
         }
         if isinstance(result, dict):
             run["summary"] = {key: value for key, value in result.items() if key != "report"}
@@ -153,11 +165,51 @@ class SchedulerAccess:
             state = self.client.get_orchestration_state(instance_id, fetch_payloads=False)
             if state is not None and state.name in {
                 "synthetic_workflow",
+                "complex_workflow",
                 "retry_workflow",
                 "recovery_workflow",
             }:
                 runs.append(self.get_run(instance_id))
         return runs
+
+    def start_complex(self, count: int, seed: int, *, run_id: str | None = None) -> str:
+        settings, profile = configure(self.settings)
+        if settings.reasoning_effort != "low":
+            raise ValueError("The deployed complex demo uses low reasoning effort")
+        records = generate_complex(count, seed)
+        if (
+            estimate_cost(records, settings, batch=True)["estimated_inference_usd"]
+            > settings.max_run_cost_usd
+        ):
+            raise ValueError("Complex input exceeds the client-side inference estimate budget")
+        run_id = valid_run_id(run_id or uuid.uuid4().hex)
+        self.registry.save_run(
+            {
+                "id": run_id,
+                "mode": "batch",
+                "status": "submission_pending",
+                "source": "live-scheduler",
+                "record_count": count,
+                "started_at": utc_now(),
+                "ended_at": None,
+                "metadata": settings.public_metadata(),
+                "workload_profile": profile,
+            }
+        )
+        self.client.schedule_new_orchestration(
+            "complex_workflow",
+            input={
+                "count": count,
+                "seed": seed,
+                "workload_profile": profile,
+                "generation": settings.public_metadata(),
+                "expected_model": [settings.model_name, settings.model_version],
+            },
+            instance_id=run_id,
+            version=WORKFLOW_VERSION,
+            tags={"application": "llm-batch-starter", "profile": "complex-v2"},
+        )
+        return run_id
 
     def detail(self, run_id: str) -> dict[str, Any]:
         state = self.client.get_orchestration_state(run_id)
@@ -263,6 +315,7 @@ class SchedulerAccess:
                 "ended_at": None,
                 "metadata": self.settings.public_metadata(),
                 "parent_run_id": parent_run_id,
+                "workload_profile": report.get("workload_profile", {}),
             }
         )
         self.client.schedule_new_orchestration(
@@ -270,6 +323,8 @@ class SchedulerAccess:
             input={
                 "parent_run_id": parent_run_id,
                 "parent_artifact_run_id": report.get("artifact_run_id", parent_run_id),
+                "workload_profile": report.get("workload_profile", {}),
+                "generation": report.get("metadata", self.settings.public_metadata()),
                 "count": count,
             },
             instance_id=run_id,
@@ -296,6 +351,7 @@ class SchedulerAccess:
                 "parent_run_id": parent_run_id,
                 "artifact_run_id": parent["artifact_run_id"],
                 "metadata": parent["metadata"],
+                "workload_profile": parent.get("workload_profile", {}),
             }
         )
         self.client.schedule_new_orchestration(
@@ -304,6 +360,8 @@ class SchedulerAccess:
                 "parent_run_id": parent_run_id,
                 "artifact_run_id": parent["artifact_run_id"],
                 "count": parent["record_count"],
+                "workload_profile": parent.get("workload_profile", {}),
+                "generation": parent["metadata"],
             },
             instance_id=run_id,
             version=WORKFLOW_VERSION,

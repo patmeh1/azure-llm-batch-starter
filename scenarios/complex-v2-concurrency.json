@@ -1,0 +1,16 @@
+{
+  "name": "complex-v2-concurrency",
+  "profile": "complex-v2",
+  "count": 26,
+  "seed": 42,
+  "stages": [
+    {"name": "one-worker", "mode": "sequential", "concurrency": 1},
+    {"name": "two-workers", "mode": "parallel", "concurrency": 2},
+    {"name": "five-workers", "mode": "parallel", "concurrency": 5}
+  ],
+  "cooldown_seconds": 65,
+  "timeout_seconds": 3600,
+  "max_estimated_inference_usd": 10,
+  "minimum_primary_accuracy": 0.8,
+  "minimum_confidence_compliance": 1.0
+}

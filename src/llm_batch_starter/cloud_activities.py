@@ -12,7 +12,7 @@ from .config import Settings, load_settings
 from .prepare import prepare_requests
 from .provider import AzureProvider
 from .reconcile import is_retryable, reconcile_results
-from .reporting import results_csv, summarize_documents
+from .reporting import analysis_csv, results_csv, summarize_documents
 from .retry import retry_delay
 from .synthetic import Record
 from .telemetry import canonical_json, event, safe_error, utc_now
@@ -106,7 +106,12 @@ class CloudActivities:
             )
         selected = [record for record in records if record.id in eligible]
         run = create_cloud_run(
-            selected, settings, run_id=run_id, enqueue=False, parent_run_id=parent_run_id
+            selected,
+            settings,
+            run_id=run_id,
+            enqueue=False,
+            parent_run_id=parent_run_id,
+            workload_profile=parent.get("workload_profile"),
         )
         return {"run_id": run["id"], "record_count": len(selected)}
 
@@ -282,6 +287,10 @@ class CloudActivities:
             overwrite=True,
         )
         self.store.put_blob(f"{run_id}/results.csv", results_csv(records).encode(), overwrite=True)
+        if summary["quality"] is not None:
+            self.store.put_blob(
+                f"{run_id}/analysis.csv", analysis_csv(records).encode(), overwrite=True
+            )
         run["summary"] = {
             key: summary[key]
             for key in (
@@ -294,6 +303,8 @@ class CloudActivities:
                 "input_tokens",
                 "output_tokens",
                 "label_accuracy",
+                "quality",
+                "semantic_status",
             )
         }
         self.store.save_run(run)

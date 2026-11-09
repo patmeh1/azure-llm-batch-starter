@@ -64,6 +64,7 @@ def run_pipeline(
         directory.mkdir(parents=True, exist_ok=False)
         write_records(directory / "input.jsonl", records)
         (directory / "config.json").write_text(settings.model_dump_json(indent=2), encoding="utf-8")
+        (directory / "prompt.md").write_text(settings.prompt + "\n", encoding="utf-8", newline="\n")
         store.save_run(
             {
                 "id": run_id,

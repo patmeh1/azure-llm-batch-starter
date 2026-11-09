@@ -124,6 +124,7 @@ def create_cloud_run(
     run_id: str | None = None,
     enqueue: bool = True,
     parent_run_id: str | None = None,
+    workload_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     prepare_requests(records, settings)
     estimate = estimate_cost(records, settings, batch=True)
@@ -162,6 +163,7 @@ def create_cloud_run(
         except ResourceExistsError:
             if store.get_blob(f"{run_id}/manifest.json") != payload:
                 raise ValueError("Existing manifest differs; do not overwrite it") from None
+        store.put_blob(f"{run_id}/prompt.md", (settings.prompt + "\n").encode(), overwrite=True)
         run = {
             "id": run_id,
             "mode": "batch",
@@ -174,6 +176,7 @@ def create_cloud_run(
             "estimate": estimate,
             "fingerprint": fingerprint,
             "parent_run_id": parent_run_id,
+            "workload_profile": workload_profile or {},
         }
         store.save_run(run, create=True)
         try:

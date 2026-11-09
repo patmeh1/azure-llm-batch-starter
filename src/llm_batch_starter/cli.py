@@ -29,6 +29,7 @@ from .reporting import summarize_run
 from .scheduler import SchedulerAccess
 from .state import State
 from .synthetic import generate_dataset, read_records, write_records
+from .workloads import complex_records, configure_profile, validate_profile_records
 
 app = typer.Typer(
     no_args_is_help=True, help="Reliable Azure OpenAI Batch automation and measurements."
@@ -49,14 +50,18 @@ def generate(
     baseline_tokens: int = 0,
     multiplier: float = 1,
     config: ConfigPath = None,
+    profile: str = "simple",
 ) -> None:
     """Create reproducible synthetic records; optional input-token target is an estimate."""
-    settings = load_settings(config)
+    settings, metadata = configure_profile(load_settings(config), profile)
     if multiplier <= 0 or baseline_tokens < 0 or target_input_tokens < 0:
         raise ValueError("Token counts must be nonnegative and multiplier positive")
     target = target_input_tokens or round(baseline_tokens * multiplier)
-    reference = synthetic_target_padding(target, settings, seed)
-    records = generate_dataset(count, seed=seed, reference_tokens=reference)
+    if profile == "complex-v2":
+        records = complex_records(count, seed, target)
+    else:
+        reference = synthetic_target_padding(target, settings, seed)
+        records = generate_dataset(count, seed=seed, reference_tokens=reference)
     prepare_requests(records, settings)
     write_records(output, records)
     tokens = [estimate_input_tokens(r, settings) for r in records]
@@ -64,6 +69,7 @@ def generate(
         {
             "path": str(output),
             "count": count,
+            "workload_profile": metadata,
             "target_input_tokens": target,
             "estimated_input_tokens_min": min(tokens),
             "estimated_input_tokens_max": max(tokens),
@@ -74,11 +80,15 @@ def generate(
 
 @app.command()
 def prepare(
-    input: Path, output: Path = Path("outputs/prepared"), config: ConfigPath = None
+    input: Path,
+    output: Path = Path("outputs/prepared"),
+    config: ConfigPath = None,
+    profile: str = "simple",
 ) -> None:
     """Validate and split records into actual Batch API JSONL requests, without Azure calls."""
-    settings = load_settings(config)
+    settings, _ = configure_profile(load_settings(config), profile)
     records = read_records(input)
+    validate_profile_records(records, profile)
     partitions = prepare_requests(records, settings)
     output.mkdir(parents=True, exist_ok=False)
     for partition in partitions:
@@ -95,14 +105,18 @@ def run(
     output: Path = Path("outputs/runs"),
     wait: bool = True,
     yes: bool = False,
+    profile: str = "simple",
 ) -> None:
     """Run sequential, bounded parallel, or real Batch processing. Paid operation."""
-    settings = load_settings(config)
+    settings, metadata = configure_profile(load_settings(config), profile)
     records = read_records(input)
+    validate_profile_records(records, profile)
     emit(estimate_cost(records, settings, batch=mode == "batch"), err=True)
     if not yes:
         typer.confirm("Submit these records to Azure and incur usage charges?", abort=True)
-    summary = run_pipeline(records, settings, mode, state, output, wait=wait)
+    summary = run_pipeline(
+        records, settings, mode, state, output, wait=wait, workload_profile=metadata
+    )
     emit(summary)
     raise typer.Exit(
         0 if summary["status"] == "succeeded" else 2 if summary["status"] == "pending" else 1
@@ -169,6 +183,7 @@ def retry_failed(
         state,
         directory.parent,
         parent_run_id=run_id,
+        workload_profile=previous.get("workload_profile"),
     )
     emit(result)
     raise typer.Exit(0 if result["status"] == "succeeded" else 1)
@@ -190,6 +205,42 @@ def runs(state: Path = Path("outputs/state.sqlite3")) -> None:
         emit(store.list_runs())
     finally:
         store.close()
+
+
+@app.command("load-test")
+def load_test(
+    scenario: Annotated[Path, typer.Option("--scenario")],
+    config: ConfigPath = None,
+    output: Path = Path("outputs/load-tests"),
+    yes: bool = False,
+) -> None:
+    """Preview a bounded load matrix; --yes authorizes paid execution of its real prompts."""
+    from .load_testing import Scenario, execute_scenario, plan_scenario
+
+    specification = Scenario.model_validate_json(scenario.read_text(encoding="utf-8"))
+    settings = load_settings(config)
+    plan = plan_scenario(specification, settings)
+    if not yes:
+        emit(plan)
+        return
+    emit(plan, err=True)
+    result = execute_scenario(specification, settings, output)
+    emit(result)
+    raise typer.Exit(
+        0 if result["status"] == "passed" else 2 if result["status"] == "pending" else 1
+    )
+
+
+@app.command("load-test-refresh")
+def load_test_refresh(report: Path) -> None:
+    """Refresh saved cloud stage IDs without submitting additional inference."""
+    from .load_testing import refresh_scenario
+
+    result = refresh_scenario(report)
+    emit(result)
+    raise typer.Exit(
+        0 if result["status"] == "passed" else 2 if result["status"] == "pending" else 1
+    )
 
 
 @app.command()
@@ -229,9 +280,10 @@ def azure_demo(
     transport: str = "auto",
     target_input_tokens: int = 0,
     yes: bool = False,
+    profile: str = "simple",
 ) -> None:
     """Submit a real synthetic run to the deployed Durable Functions workflow."""
-    settings = load_settings(config)
+    settings, metadata = configure_profile(load_settings(config), profile)
     if transport not in {"auto", "scheduler", "storage"}:
         raise ValueError("transport must be auto, scheduler, or storage")
     selected_transport = ("storage" if input else "scheduler") if transport == "auto" else transport
@@ -239,24 +291,31 @@ def azure_demo(
         raise ValueError(
             "Scheduler transport generates synthetic records; custom files need approved Storage connectivity"
         )
-    padding = synthetic_target_padding(target_input_tokens, settings, seed)
-    records = (
-        read_records(input)
-        if input
-        else generate_dataset(count, seed=seed, reference_tokens=padding)
-    )
+    padding = 0
+    if input:
+        records = read_records(input)
+        validate_profile_records(records, profile)
+    elif profile == "complex-v2":
+        records = complex_records(count, seed, target_input_tokens)
+    else:
+        padding = synthetic_target_padding(target_input_tokens, settings, seed)
+        records = generate_dataset(count, seed=seed, reference_tokens=padding)
     emit(estimate_cost(records, settings, batch=True), err=True)
     if not yes:
         typer.confirm("Upload and submit to the Azure workflow, incurring charges?", abort=True)
     if selected_transport == "scheduler":
         access = SchedulerAccess(settings)
         try:
-            run_id = access.start_synthetic(count, seed, padding)
+            run_id = (
+                access.start_complex(count, seed)
+                if profile == "complex-v2"
+                else access.start_synthetic(count, seed, padding)
+            )
         finally:
             access.close()
         result = {"id": run_id, "status": "queued"}
     else:
-        result = create_cloud_run(records, settings)
+        result = create_cloud_run(records, settings, workload_profile=metadata)
     emit(
         {
             "run_id": result["id"],
@@ -305,7 +364,10 @@ def azure_status(
                         err=True,
                     )
                 else:
-                    for filename in ("summary.json", "results.jsonl", "results.csv"):
+                    filenames = ["summary.json", "results.jsonl", "results.csv"]
+                    if run.get("workload_profile", {}).get("name") == "complex-v2":
+                        filenames += ["analysis.csv", "prompt.md"]
+                    for filename in filenames:
                         (directory / filename).write_bytes(store.get_blob(f"{run_id}/{filename}"))
                 raise typer.Exit(0 if run["status"] == "succeeded" else 1)
             if not wait or time.monotonic() + poll_seconds >= deadline:

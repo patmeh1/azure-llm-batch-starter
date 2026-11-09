@@ -2,6 +2,14 @@ name: Opt-in Azure smoke test
 on:
   workflow_dispatch:
     inputs:
+      profile:
+        description: Synthetic workload to run against the already-deployed worker
+        required: true
+        type: choice
+        options:
+          - simple
+          - complex-v2
+        default: simple
       approve_charges:
         description: I approve usage charges in the configured protected environment
         required: true
@@ -32,4 +40,5 @@ jobs:
           AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
           DTS_ENDPOINT: ${{ secrets.DTS_ENDPOINT }}
           TASKHUB_NAME: ${{ secrets.TASKHUB_NAME }}
-        run: python scripts/live-smoke.py --count 10 --timeout 900 --yes
+          LLM_TEST_PROFILE: ${{ inputs.profile }}
+        run: python scripts/live-smoke.py --profile "$LLM_TEST_PROFILE" --timeout 900 --yes

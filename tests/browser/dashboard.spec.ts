@@ -35,3 +35,16 @@ test('drills into failures and exposes test timings', async ({ page }) => {
   await page.getByRole('tab', { name: 'Test timings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Test execution history', exact: true })).toBeVisible();
 });
+
+test('shows semantic failures separately for complex synthetic prompts', async ({ page }, testInfo) => {
+  const selector = page.getByRole('combobox', { name: 'Inspect a run', exact: true });
+  await selector.click();
+  await selector.press('ArrowDown');
+  await page.getByRole('option', { name: 'simulated-complex-v2', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Complex workload quality', exact: true })).toBeVisible();
+  await expect(page.getByText('Deterministic synthetic gold checks.', { exact: false })).toBeVisible();
+  await expect(page.getByText(/SIMULATED demo rows/)).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 1900 });
+  await page.getByRole('heading', { name: 'LLM Batch Operations', exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath('complex-dashboard-synthetic.png'), fullPage: true });
+});

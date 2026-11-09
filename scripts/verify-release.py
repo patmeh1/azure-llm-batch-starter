@@ -33,4 +33,11 @@ with zipfile.ZipFile(Path("dist") / f"{stem}-py3-none-any.whl") as wheel:
         raise ValueError("Wheel does not define the CLI entry point")
     if f'__version__ = "{__version__}"' not in wheel.read("llm_batch_starter/__init__.py").decode():
         raise ValueError("Wheel and source package versions differ")
-print(f"Verified {stem}: portable shell scripts, artifact boundaries, and wheel entry point.")
+    for source in Path("prompts").glob("*.md"):
+        if wheel.read(f"llm_batch_starter/prompts/{source.name}") != source.read_bytes():
+            raise ValueError("Packaged Markdown differs from source: " + source.name)
+    if "llm_batch_starter/prompts/complex-taxonomy-v2.md" not in wheel.namelist():
+        raise ValueError("Wheel is missing the active complex taxonomy")
+print(
+    f"Verified {stem}: portable scripts, artifact boundaries, Markdown assets, and CLI entry point."
+)

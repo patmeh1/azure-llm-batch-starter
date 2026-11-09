@@ -1,0 +1,16 @@
+{
+  "name": "complex-v2-smoke",
+  "profile": "complex-v2",
+  "count": 13,
+  "seed": 42,
+  "stages": [
+    {"name": "sequential", "mode": "sequential", "concurrency": 1},
+    {"name": "parallel-five", "mode": "parallel", "concurrency": 5},
+    {"name": "cloud-batch", "mode": "batch", "concurrency": 1}
+  ],
+  "cooldown_seconds": 65,
+  "timeout_seconds": 1800,
+  "max_estimated_inference_usd": 5,
+  "minimum_primary_accuracy": 0.8,
+  "minimum_confidence_compliance": 1.0
+}

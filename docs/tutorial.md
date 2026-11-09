@@ -14,6 +14,10 @@ Each record contains `id`, `text`, and optional `expected_label`. The expected
 label is for evaluation and is **not** included in the model request.
 Generation refuses to overwrite an existing input file.
 
+For the [v2 complex workload](complex-prompts.md), pass `--profile complex-v2`
+to generation, preparation, and execution. Complex records include an optional
+`expected_result` gold contract, also excluded from the model request.
+
 ## Configure
 
 Use the private `.azure\demo-config.json` produced by deployment, or write your
@@ -62,9 +66,12 @@ Saved inputs/configuration must match to resume. Successful records are not
 knowingly resubmitted. `retry-failed` creates a new run containing only known
 failed records; it does not retry pending/ambiguous submissions.
 
-Local exports include `summary.json`, `results.jsonl`, and `results.csv` under
+Local exports include `prompt.md`, `summary.json`, `results.jsonl`, and `results.csv` under
 `outputs\runs\YOUR_RUN_ID`. CSV stores arbitrary validated output in a JSON
 `result` column. Parse that column to flatten a task-specific schema.
+Complex runs additionally write `analysis.csv`, with the application-supplied
+ID and eleven analytical fields. A row can be schema-valid but semantically
+incorrect; inspect the separate `quality` and `semantic_status` summary fields.
 
 Close/restart the local coordinator only with its state and input artifacts
 preserved. Already-submitted remote Batch jobs continue, but prepared partitions

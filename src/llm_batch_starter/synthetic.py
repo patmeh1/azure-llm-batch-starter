@@ -5,7 +5,14 @@ import random
 from pathlib import Path
 
 import tiktoken
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+)
 
 TICKETS = {
     "shipping": "My parcel has not arrived. Please check the delivery tracking and shipping status.",
@@ -25,6 +32,14 @@ class Record(BaseModel):
     id: str = Field(pattern=r"^[A-Za-z0-9_.-]{1,80}$")
     text: str = Field(min_length=1)
     expected_label: str | None = None
+    expected_result: dict[str, JsonValue] | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_record(self, handler: SerializerFunctionWrapHandler) -> dict[str, JsonValue]:
+        value: dict[str, JsonValue] = handler(self)
+        if self.expected_result is None:
+            value.pop("expected_result", None)
+        return value
 
 
 def generate_dataset(count: int, seed: int = 42, reference_tokens: int = 0) -> list[Record]:

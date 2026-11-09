@@ -10,6 +10,10 @@ Durable Functions workers. Data generation happens in an authorized activity
 inside Azure. This does not open private Storage or proxy its documents through
 the client; only operational metadata is returned through scheduler history.
 Custom-file transport uses Storage/Queue and requires approved connectivity.
+The v2 `complex_workflow` uses the same backend but verifies the client's
+Markdown/schema bundle hash and expected model/version before creating its
+synthetic manifest. Expected answers stay in private artifacts, not inference
+messages.
 
 ## Upstream foundations
 
@@ -50,8 +54,9 @@ and the deployed task hub; it contains no account key.
 The package uses the declared SDK ranges and the generated dependency lock.
 See [testing](testing.md) for versions actually exercised.
 
-The service-level `prepackage` hook copies the current shared library into the
-Functions package and checks every module hash. This hook also runs during
+The service-level `prepackage` hook copies the current shared library and
+Markdown prompts into the Functions package and checks their hashes. Windows
+and POSIX wrappers invoke the same Python packager. This hook also runs during
 `azd deploy`; merely copying the library once can leave new function entry
 points calling stale helper code.
 
@@ -72,7 +77,9 @@ Ambiguous submissions retain their reservation until an operator establishes
 the remote outcome; cancellation does not make an unknown paid submission safe
 to repeat.
 
-The host and both starters explicitly use orchestration version `2.0`.
+The host and starters explicitly use orchestration version `3.0`.
+The separately named complex workflow is new; prior workflow sequences remain
+compatible with versions `1.0` and `2.0`.
 Sub-orchestrations inherit the root version. `CurrentOrOlder` matching with
 `Reject` prevents an older worker from accepting newer-version work during
 rolling deployment. The original unversioned activity sequence is retained

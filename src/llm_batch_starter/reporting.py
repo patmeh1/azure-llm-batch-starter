@@ -7,6 +7,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from .complex_workload import FIELDS
+from .quality import summarize_quality
 from .reconcile import is_retryable
 from .state import State
 from .telemetry import elapsed_between
@@ -100,6 +102,7 @@ def summarize_documents(
         if run["mode"] == "batch":
             priced_cost *= pricing["batch_discount"]
     expected = run["record_count"]
+    quality = summarize_quality(records, expected)
     correctness = [item["label_correct"] for item in records if "label_correct" in item]
     buckets: dict[str, dict[str, int]] = {}
     for item in attempts:
@@ -159,6 +162,16 @@ def summarize_documents(
         "cost_note": "Configured retail rates applied to reported usage, not an Azure invoice or full infrastructure cost.",
         "label_accuracy": sum(correctness) / len(correctness) if correctness else None,
         "accuracy_denominator": len(correctness),
+        "quality": quality,
+        "semantic_status": (
+            "passed"
+            if quality["passed_records"] == expected
+            else "needs_review"
+            if quality["evaluated_records"] == expected
+            else "not_fully_evaluated"
+        )
+        if quality
+        else None,
         "per_minute": buckets,
         "jobs": jobs,
         "retryable_failed_records_count": sum(
@@ -209,6 +222,8 @@ def export_results(store: State, run_id: str, directory: Path) -> dict[str, Any]
         for result in results:
             stream.write(json.dumps(result, ensure_ascii=False) + "\n")
     (directory / "results.csv").write_text(results_csv(results), encoding="utf-8")
+    if summary["quality"] is not None:
+        (directory / "analysis.csv").write_text(analysis_csv(results), encoding="utf-8")
     return summary
 
 
@@ -225,4 +240,21 @@ def results_csv(results: list[dict[str, Any]]) -> str:
                 "result": json.dumps(result.get("result"), ensure_ascii=False),
             }
         )
+    return stream.getvalue()
+
+
+def analysis_csv(results: list[dict[str, Any]]) -> str:
+    stream = io.StringIO(newline="")
+    writer = csv.DictWriter(stream, fieldnames=["id", *FIELDS])
+    writer.writeheader()
+    for row in results:
+        result = row.get("result") if row["status"] == "succeeded" else {}
+        values = {key: (result or {}).get(key, "") for key in FIELDS}
+        for key in ("secondary_routes", "improvements"):
+            if isinstance(values[key], list):
+                values[key] = " | ".join(values[key])
+        for key, value in values.items():
+            if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+                values[key] = "'" + value
+        writer.writerow({"id": row["id"], **values})
     return stream.getvalue()

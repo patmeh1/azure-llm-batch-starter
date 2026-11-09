@@ -14,4 +14,11 @@ for path in source.glob("*.py"):
         missing_or_stale.append(path.name)
 if missing_or_stale:
     raise SystemExit("Missing/stale deployed source files: " + ", ".join(missing_or_stale))
-print("All shared Python modules match the deployment package.")
+for path in (root / "prompts").glob("*.md"):
+    copied = target / "prompts" / path.name
+    if (
+        not copied.exists()
+        or sha256(path.read_bytes()).digest() != sha256(copied.read_bytes()).digest()
+    ):
+        raise SystemExit("Missing/stale deployed prompt asset: " + path.name)
+print("All shared Python modules and Markdown prompts match the deployment package.")

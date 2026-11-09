@@ -15,6 +15,7 @@ All examples are synthetic. No Azure credentials or customer content are include
 | Deploy a runnable Azure demo into your own subscription | [Azure tutorial](docs/azure-demo.md) |
 | Process a JSONL file and compare modes | [Local tutorial](docs/tutorial.md) |
 | Investigate token limits, retries, and 429s | [Load testing](docs/load-testing.md) |
+| Run complex synthetic prompts stored in Markdown | [V2 complex workload](docs/complex-prompts.md) |
 | Understand the reusable Microsoft framework | [Orchestration](docs/orchestration.md) |
 | Review topology, authentication, and data flow | [Architecture](docs/architecture.md) |
 | Understand what each measurement actually means | [Metrics](docs/metrics.md) |
@@ -46,6 +47,24 @@ Run timed offline tests:
 ```powershell
 python scripts\run-tests.py -q
 ```
+
+## V2 complex-prompt workload
+
+Version **0.2.0** adds a domain-neutral, opt-in `complex-v2` profile with
+**425 hierarchical routes, 850 examples, and thirteen conversation scenarios**.
+The actual instructions and taxonomy are in [`prompts`](prompts), and are
+packaged with both the Python application and Azure worker.
+
+```powershell
+llm-batch generate --profile complex-v2 --count 13 --output outputs\complex-v2.jsonl
+llm-batch load-test --scenario scenarios\complex-v2-smoke.json --config .azure\demo-config.json
+```
+
+The second command previews the cost/token plan without inference. Add `--yes`
+only after reviewing it to compare sequential, paced parallel, and actual cloud
+Batch on the same complex cases. Reports and the dashboard distinguish
+**schema success from semantic accuracy and rule compliance**.
+See the [complete v2 tutorial](docs/complex-prompts.md).
 
 ## Real Azure demo
 

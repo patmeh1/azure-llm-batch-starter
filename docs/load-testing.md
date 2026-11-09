@@ -5,6 +5,11 @@ available to measure how a **dedicated, authorized test deployment** behaves
 when concurrency increases. Do not use it against an unrelated/shared production
 endpoint.
 
+For active taxonomy/rule complexity instead of reference-text padding, use
+the [v2 complex-prompt scenarios](complex-prompts.md). Their Markdown prompts
+are sent in the actual requests and scored against withheld synthetic gold
+labels. The two workload profiles are not interchangeable benchmarks.
+
 ## Choose a defensible baseline
 
 Use measured API `prompt_tokens` from your own workload where possible. If only

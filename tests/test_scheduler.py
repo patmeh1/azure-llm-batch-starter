@@ -4,13 +4,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from llm_batch_starter.config import Settings
+from llm_batch_starter.complex_workload import configure
+from llm_batch_starter.config import WORKFLOW_VERSION, Settings
 from llm_batch_starter.scheduler import SchedulerAccess
 from llm_batch_starter.state import State
 
 
 @pytest.mark.parametrize(
-    ("name", "parent"), [("synthetic_workflow", None), ("retry_workflow", "parent-run")]
+    ("name", "parent"),
+    [("synthetic_workflow", None), ("complex_workflow", None), ("retry_workflow", "parent-run")],
 )
 def test_failed_native_output_is_not_parsed_as_success_json(tmp_path, monkeypatch, name, parent):
     state = SimpleNamespace(
@@ -55,6 +57,33 @@ def test_failed_native_output_is_not_parsed_as_success_json(tmp_path, monkeypatc
         assert report["orchestration_elapsed_seconds"] == 60
     finally:
         access.close()
+
+
+def test_complex_starter_sends_only_reproducible_metadata(tmp_path):
+    settings, profile = configure(Settings())
+    access = SchedulerAccess.__new__(SchedulerAccess)
+    access.settings = settings
+    access.registry = State(tmp_path / "state.sqlite3")
+    scheduled = []
+    access.client = SimpleNamespace(
+        schedule_new_orchestration=lambda name, **kwargs: scheduled.append((name, kwargs))
+    )
+    try:
+        run_id = access.start_complex(13, 42, run_id="saved-complex-run")
+        name, payload = scheduled[0]
+        assert name == "complex_workflow"
+        assert payload["instance_id"] == run_id == "saved-complex-run"
+        assert payload["version"] == WORKFLOW_VERSION
+        assert (
+            payload["input"]["workload_profile"]["prompt_bundle_sha256"]
+            == profile["prompt_bundle_sha256"]
+        )
+        assert payload["input"]["expected_model"] == [settings.model_name, settings.model_version]
+        assert "expected_result" not in json.dumps(payload)
+        assert "CANARY-" not in json.dumps(payload)
+        assert access.registry.get_run(run_id)["workload_profile"]["name"] == "complex-v2"
+    finally:
+        access.registry.close()
 
 
 def test_recovery_retains_artifact_identity_and_is_idempotent(tmp_path):

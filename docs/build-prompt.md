@@ -46,3 +46,24 @@ internal correspondence out of public Git history and artifacts.
 
 Do not promise zero 429s, unlimited scale, guaranteed speedups, or a Batch
 completion deadline that the service does not guarantee.
+
+## V2 extension
+
+Preserve the simple baseline and add an opt-in complex synthetic workload.
+Keep the actual system instructions, active hierarchical taxonomy/examples,
+and user instructions in readable Markdown assets included in source, wheel,
+and deployed worker packages. Reproduce structural challenges using independent
+fictional domains, not customer wording, policies, or records.
+
+Generate deterministic conversations with corrections, negation, menu noise,
+stale prior classification, meaningful secondary requests, partial evidence,
+unresolved handoffs, confidence preservation, and quoted instruction-like data.
+Keep gold labels outside model messages. Check eleven output fields, rule
+constraints, and identifier canaries; export a twelve-column analysis including
+the application-owned record ID.
+
+Add cost-bounded same-data sequential/parallel/cloud-Batch load scenarios that
+preview by default. Persist run IDs before paid submission, preserve pending
+work, and use client/worker prompt-bundle hashes to reject mismatches. Report
+schema-valid processing separately from semantic quality. Publish measured
+quality failures without altering expected answers to make the experiment pass.

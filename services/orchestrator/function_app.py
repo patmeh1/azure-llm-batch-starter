@@ -9,6 +9,7 @@ import azure.functions as func
 
 from llm_batch_starter.azure_state import AzureState, create_cloud_run, valid_run_id
 from llm_batch_starter.cloud_activities import CloudActivities
+from llm_batch_starter.complex_workload import configure, generate_complex
 from llm_batch_starter.config import WORKFLOW_VERSION, load_settings
 from llm_batch_starter.prepare import estimate_cost
 from llm_batch_starter.quota import update_reservations
@@ -52,6 +53,37 @@ def bootstrap_synthetic(options: dict):
     records = generate_dataset(count, seed=seed, reference_tokens=reference)
     run = create_cloud_run(records, settings, run_id=options["run_id"], enqueue=False)
     return {"run_id": run["id"], "record_count": count}
+
+
+@app.orchestration_trigger(context_name="context")
+def complex_workflow(context: df.DurableOrchestrationContext):
+    options = context.get_input()
+    options["run_id"] = context.instance_id
+    yield context.call_activity_with_retry("bootstrap_complex", df.RetryOptions(5000, 3), options)
+    return (
+        yield context.call_sub_orchestrator(
+            "batch_workflow",
+            context.instance_id,
+            instance_id=f"{context.instance_id}-processor",
+            version=context.version,
+        )
+    )
+
+
+@app.activity_trigger(input_name="options")
+def bootstrap_complex(options: dict):
+    settings, profile = configure(load_settings(auth_mode="managed_identity"))
+    if options["workload_profile"]["prompt_bundle_sha256"] != profile["prompt_bundle_sha256"]:
+        raise ValueError(
+            "Client/worker complex Markdown prompt bundles differ; redeploy or update the client"
+        )
+    if options["expected_model"] != [settings.model_name, settings.model_version]:
+        raise ValueError("Client and deployed complex model/version differ")
+    records = generate_complex(int(options["count"]), int(options["seed"]))
+    run = create_cloud_run(
+        records, settings, run_id=options["run_id"], enqueue=False, workload_profile=profile
+    )
+    return {"run_id": run["id"], "record_count": len(records), "workload_profile": profile}
 
 
 @app.orchestration_trigger(context_name="context")

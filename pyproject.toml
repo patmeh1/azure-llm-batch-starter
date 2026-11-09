@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "azure-llm-batch-starter"
-version = "0.1.1"
+version = "0.2.0"
 description = "Durable Azure OpenAI Batch automation, honest timing, and a local operations dashboard."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -47,6 +47,9 @@ llm-batch = "llm_batch_starter.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llm_batch_starter"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"prompts" = "llm_batch_starter/prompts"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

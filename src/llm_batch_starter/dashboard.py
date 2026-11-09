@@ -44,6 +44,8 @@ def load_run_history(store: Any) -> list[dict[str, Any]]:
                 "errors_429": summary.get("errors_429"),
                 "records_per_minute": summary.get("completed_records_per_minute"),
                 "model": run.get("metadata", {}).get("model_name", "unknown"),
+                "workload": run.get("workload_profile", {}).get("name", "simple"),
+                "semantic_status": summary.get("semantic_status"),
             }
         )
     return sorted(rows, key=lambda row: row["started_at"], reverse=True)
@@ -120,6 +122,11 @@ def render_dashboard() -> None:
         models = st.sidebar.multiselect(
             "Models", sorted(frame["model"].unique()), default=sorted(frame["model"].unique())
         )
+        workloads = st.sidebar.multiselect(
+            "Workload profiles",
+            sorted(frame["workload"].unique()),
+            default=sorted(frame["workload"].unique()),
+        )
         dates = pd.to_datetime(frame["started_at"], utc=True).dt.date
         first_date = st.sidebar.date_input("Start date", min(dates))
         last_date = st.sidebar.date_input("End date", max(dates))
@@ -127,6 +134,7 @@ def render_dashboard() -> None:
             frame["mode"].isin(modes)
             & frame["status"].isin(statuses)
             & frame["model"].isin(models)
+            & frame["workload"].isin(workloads)
             & (dates >= first_date)
             & (dates <= last_date)
         ]
@@ -194,6 +202,27 @@ def render_dashboard() -> None:
                     }
                 )
                 st.caption("Schema-valid processing success is not the same as semantic accuracy.")
+            if detail.get("quality"):
+                quality = detail["quality"]
+                st.subheader("Complex workload quality")
+                st.write(
+                    {
+                        "Semantic status": detail.get("semantic_status"),
+                        "Evaluated / expected": f"{quality['evaluated_records']} / {quality['expected_records']}",
+                        "Fully correct fraction of all records": quality[
+                            "fully_correct_fraction_of_all_records"
+                        ],
+                    }
+                )
+                st.json(
+                    {
+                        "field_accuracy": quality["field_accuracy"],
+                        "constraint_compliance": quality["constraint_compliance"],
+                        "scenario_breakdown": quality["scenario_breakdown"],
+                    }
+                )
+                st.caption(quality["grading_note"])
+                st.write({"Prompt bundle": detail.get("workload_profile", {})})
             if detail["http_200_latency_p50_seconds"] is not None:
                 st.write(
                     {

@@ -1,7 +1,7 @@
 {
-  "observed_at": "2026-11-09T21:54:24.855301+00:00",
+  "observed_at": "2026-11-10T01:43:44.598124+00:00",
   "started_at": "2026-11-09T19:52:39.511305+00:00",
-  "execution_status": "running",
+  "execution_status": "interrupted",
   "specification": {
     "name": "v3-gpt5-mini-1700",
     "count": 1700,
@@ -64,131 +64,131 @@
     "batch_discount": 0.5
   },
   "conservative_all_attempts_estimate_usd": 137.04740940000002,
-  "elapsed_seconds_including_waits": 7305.342995,
+  "elapsed_seconds_including_waits": 21065.086819,
   "results_final": false,
   "runs": [
     {
       "mode": "sequential",
-      "status": "running",
+      "status": "interrupted",
       "record_count": 1700,
-      "succeeded": 599,
+      "succeeded": 654,
       "failed": 0,
-      "pending": 1101,
-      "elapsed_seconds": 7304.717175,
-      "completed_records_per_minute": 4.92010835450313,
-      "http_attempts": 1186,
-      "errors_429": 587,
-      "retry_wait_seconds": 3070.324999999998,
-      "input_tokens": 18315262,
-      "output_tokens": 399396,
-      "cached_tokens": 18006784,
-      "reasoning_tokens": 309568,
-      "http_200_latency_p50_seconds": 6.64100000000326,
-      "http_200_latency_p95_seconds": 8.90600000001723,
-      "successful_record_elapsed_mean_seconds": 12.128727879799387,
-      "all_record_elapsed_mean_seconds": 12.128727879799387,
-      "record_elapsed_measured_count": 599,
+      "pending": 1046,
+      "elapsed_seconds": 21064.460159,
+      "completed_records_per_minute": 1.8628533417807207,
+      "http_attempts": 1295,
+      "errors_429": 641,
+      "retry_wait_seconds": 3371.483999999998,
+      "input_tokens": 19996959,
+      "output_tokens": 435585,
+      "cached_tokens": 19668864,
+      "reasoning_tokens": 337536,
+      "http_200_latency_p50_seconds": 6.64000000001397,
+      "http_200_latency_p95_seconds": 8.905999999979395,
+      "successful_record_elapsed_mean_seconds": 12.138808868501288,
+      "all_record_elapsed_mean_seconds": 12.138808868501288,
+      "record_elapsed_measured_count": 654,
       "observed_rate_limits": [
         {
           "requests_per_minute": "150",
           "tokens_per_minute": "150000"
         }
       ],
-      "priced_usage_estimate_usd": 1.45868921,
+      "priced_usage_estimate_usd": 1.5894068850000003,
       "quality": {
         "profile": "complex-v2",
         "expected_records": 1700,
-        "evaluated_records": 599,
-        "not_evaluated_records": 1101,
-        "passed_records": 57,
-        "fully_correct_fraction_of_all_records": 0.033529411764705884,
-        "exact_match_fraction_of_evaluated": 0.09515859766277128,
+        "evaluated_records": 654,
+        "not_evaluated_records": 1046,
+        "passed_records": 61,
+        "fully_correct_fraction_of_all_records": 0.03588235294117647,
+        "exact_match_fraction_of_evaluated": 0.09327217125382263,
         "field_accuracy": {
-          "cause_explanation": 0.24040066777963273,
-          "cause_group": 0.4607679465776294,
-          "confidence": 0.8614357262103506,
-          "confidence_basis": 0.996661101836394,
-          "impact": 0.9799666110183639,
-          "improvements": 0.2337228714524207,
-          "prevention": 0.9699499165275459,
-          "prevention_reason": 0.4991652754590985,
-          "primary_route": 0.9482470784641068,
-          "resolution": 0.8313856427378965,
-          "secondary_routes": 0.4691151919866444
+          "cause_explanation": 0.2400611620795107,
+          "cause_group": 0.45565749235474007,
+          "confidence": 0.8654434250764526,
+          "confidence_basis": 0.9969418960244648,
+          "impact": 0.9801223241590215,
+          "improvements": 0.2324159021406728,
+          "prevention": 0.9709480122324159,
+          "prevention_reason": 0.4969418960244648,
+          "primary_route": 0.9480122324159022,
+          "resolution": 0.8318042813455657,
+          "secondary_routes": 0.4648318042813456
         },
         "constraint_compliance": {
           "confidence_bounds": 1.0,
-          "confidence_never_lowered": 0.998330550918197,
+          "confidence_never_lowered": 0.9984709480122325,
           "identifier_suppression": 1.0,
-          "immutable_archived_confidence": 0.998330550918197,
+          "immutable_archived_confidence": 0.9984709480122325,
           "improvement_limit_and_distinctness": 1.0,
           "secondary_limit_and_distinctness": 1.0,
           "taxonomy_membership": 1.0
         },
         "scenario_breakdown": {
           "direct_need": {
-            "records": 47,
-            "evaluated": 47,
+            "records": 51,
+            "evaluated": 51,
             "passed": 2
           },
           "stale_candidate": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 51,
+            "evaluated": 51,
             "passed": 1
           },
           "ivr_distraction": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 51,
+            "evaluated": 51,
             "passed": 2
           },
           "negated_intent": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 51,
+            "evaluated": 51,
             "passed": 0
           },
           "corrected_goal": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 2
           },
           "secondary_topics": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 3
           },
           "insufficient_source": {
-            "records": 46,
-            "evaluated": 46,
-            "passed": 46
+            "records": 50,
+            "evaluated": 50,
+            "passed": 50
           },
           "partial_evidence": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 0
           },
           "unresolved_handoff": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 0
           },
           "ambiguous_tie": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 0
           },
           "confidence_upgrade": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 1
           },
           "instruction_in_data": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 0
           },
           "partial_outcome": {
-            "records": 46,
-            "evaluated": 46,
+            "records": 50,
+            "evaluated": 50,
             "passed": 0
           }
         },
@@ -196,7 +196,8 @@
       },
       "semantic_status": "not_fully_evaluated",
       "gate": null,
-      "client_groups": []
+      "client_groups": [],
+      "checkpoint_stage_status": "running"
     },
     {
       "mode": "client-batch",
@@ -226,5 +227,9 @@
       "gate": null,
       "client_groups": []
     }
-  ]
+  ],
+  "checkpoint_execution_status": "running",
+  "last_activity_at": "2026-11-09T22:05:28.023932+00:00",
+  "runner_checked_at": "2026-11-10T01:43:44.789293+00:00",
+  "execution_note": "No matching experiment runner process was observed. The checkpoint remains incomplete; the interruption cause is not established. No new paid run was started."
 }

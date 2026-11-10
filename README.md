@@ -7,9 +7,11 @@ read-only dashboard for durations, failures, retries, token rates, and tests.
 
 All examples are synthetic. No Azure credentials or customer content are included.
 
-**Customer-facing comparison page:** [patmeh1.github.io/azure-llm-batch-starter](https://patmeh1.github.io/azure-llm-batch-starter/)
-brings together measured comparisons, limitations, prompts, guides, downloads,
-and timestamped v3 progress. It does not connect to Azure or trigger inference.
+**Customer-facing website:** [Overview](https://patmeh1.github.io/azure-llm-batch-starter/)
+and [side-by-side comparison](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html).
+Separate pages explain v1/v2 **GPT-5.4 mini** versus v3 **GPT-5 mini**, the exact
+configuration changes, measured outcomes, limitations, prompts, and downloads.
+The site does not connect to Azure or trigger inference.
 
 ## Choose your starting point
 
@@ -85,8 +87,9 @@ It reuses the v2 Markdown prompts unchanged and preserves v2 deployments.
 Client-side grouping is explicitly **not the Azure Batch API**; the checked
 GPT-5 mini regional catalogs did not list DataZoneBatch.
 
-The full live comparison can take many hours. Its [results/status](docs/v3-results.md)
-remain marked pending until both modes finish. See the [v3 guide](docs/v3-gpt5-mini.md)
+The full comparison is currently interrupted and incomplete; the
+[results/status](docs/v3-results.md) preserve partial evidence, not final results.
+See the [v3 guide](docs/v3-gpt5-mini.md)
 for assumptions, budget/attempt/deadline guards, resume behavior, and output export.
 
 ## Real Azure demo

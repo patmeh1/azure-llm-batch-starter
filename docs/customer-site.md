@@ -2,10 +2,30 @@
 
 Public page: **https://patmeh1.github.io/azure-llm-batch-starter/**
 
-The site brings together v1/v2/v3 comparisons, methodology, capacity and
-throttling findings, quality limitations, prompts, scenarios, architecture,
-guides, releases, and output examples. It contains only customer-neutral
-synthetic material already approved for the public repository.
+The site now uses real, independently addressable HTML pages rather than a
+single long page with hash-only navigation. Every tab loads its own page, marks
+the current location, and supports direct links, refresh, browser back, and
+navigation without JavaScript.
+
+| Page | Purpose |
+|---|---|
+| [Overview](https://patmeh1.github.io/azure-llm-batch-starter/) | The story: capacity and pacing, complex-task accuracy, then GPT-5 mini grouping |
+| [Compare versions](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html) | Side-by-side configuration and outcome tables across v1/v2/v3 |
+| [V1 baseline](https://patmeh1.github.io/azure-llm-batch-starter/v1.html) | GPT-5.4 mini compact, token-stress, and recovery findings |
+| [V2 complexity](https://patmeh1.github.io/azure-llm-batch-starter/v2.html) | Same GPT-5.4 mini build, complex prompts, and failed semantic gates |
+| [V3 GPT-5 mini](https://patmeh1.github.io/azure-llm-batch-starter/v3.html) | Different model, same complex prompt, fixed groups, and incomplete evidence |
+| [What works](https://patmeh1.github.io/azure-llm-batch-starter/approach.html) | Decisions supported by the evidence, not a model ranking |
+| [Resources](https://patmeh1.github.io/azure-llm-batch-starter/resources.html) | Quickstart, prompts, guides, code, architecture, outputs, and releases |
+| [Methodology](https://patmeh1.github.io/azure-llm-batch-starter/methodology.html) | What was held constant, changed, and cannot be concluded |
+
+V1/v2 explicitly identify **GPT-5.4 mini 2026-03-17**; v3 identifies
+**GPT-5 mini 2025-08-07**. The comparison separates prompt/task complexity,
+record counts, quota, pacing, output ceilings, execution modes, service-Batch
+availability, timing, 429s, quality, and token-cost estimates. It does not merge
+different workloads into a speed leaderboard.
+
+Content remains customer-neutral and synthetic. Old shared root links such
+as `/#v2` redirect to their dedicated pages when JavaScript is available.
 
 ## Data sources and freshness
 
@@ -22,6 +42,9 @@ This is a **static publication**, not a live Azure monitor. It does not read
 the running experiment, private storage, credentials, or API endpoints. V3
 always shows its evidence timestamp; incomplete metrics are not presented as
 final performance results.
+When the runner is not active, the public snapshot labels the run
+`interrupted` and records `last_activity_at` separately from the time of
+inspection. A recently checked stale checkpoint is not live progress.
 
 The HTML contains pre-rendered comparisons and inline styles/scripts/image
 data, so its core content works without JavaScript. Theme and clipboard controls
@@ -41,11 +64,14 @@ python -m http.server 8771 --bind 127.0.0.1 --directory _site
 Open `http://127.0.0.1:8771`. Stop the temporary server before running browser
 tests, which manage their own server on that port.
 
-The builder is Python standard-library code. It reads a fixed allowlist and
-produces only the HTML, public evidence JSON, Markdown prompts, and an
+The builder is Python standard-library code. `site/layout.html` is shared by
+the eight templates in `site/pages`. It reads a fixed allowlist and
+produces only the eight HTML pages, public evidence JSON, Markdown prompts, and an
 illustrative image under ignored `_site`. It rejects unexpected output files,
 common private-context fields/values, inconsistent outcome counts, and
 contradictory pending/final flags rather than silently publishing them.
+All page and fragment links are validated across the generated output, and
+model/prompt identity checks guard against silently relabeling historical data.
 
 These guards are not a complete data-loss-prevention system. Review all new
 source data and output examples before committing or sharing them.
@@ -60,9 +86,10 @@ python scripts\normalize-browser-report.py --category site
 
 Use the existing Playwright setup described in [testing](testing.md). On
 Windows with Edge installed, set `$env:BROWSER_CHANNEL='msedge'`. Tests cover
-evidence values, explicit pending states, automatic terminal-state rendering,
-escaping/privacy guards, internal asset links, mobile overflow, both themes,
-downloads, clipboard failure handling, and no-JavaScript access.
+evidence values, explicit interrupted/pending states, terminal-state rendering,
+escaping/privacy guards, cross-page fragments, each tab's direct route and
+active state, reload/back behavior, legacy hash links, mobile tables, themes
+across navigation, downloads, clipboard failures, and no-JavaScript access.
 
 ## Publishing
 
@@ -90,7 +117,11 @@ llm-batch v3-export outputs\v3\EXPERIMENT\experiment.json outputs\v3-public
 Review the allowlisted `summary.json`, copy it to `docs/v3-results.json`, and
 update `docs/v3-results.md` to match. Keep `results_final: false` while execution
 is pending or interrupted. Only a genuinely terminal experiment may set it
-true; the exporter derives this from the recorded state.
+true; the exporter derives this from the recorded state. If process observation
+shows an interruption while the saved checkpoint still says running, preserve
+the original checkpoint and explicitly annotate the public snapshot with the
+observed interruption and last activity. Do not silently restart paid work to
+make the website appear current.
 
 When final results are ready, audit and attach the complete synthetic CSV/JSONL
 exports to the v3 release, update its notes/status, and commit the reviewed

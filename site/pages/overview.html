@@ -1,0 +1,56 @@
+      <section class="hero" aria-labelledby="story-title">
+        <div>
+          <p class="eyebrow">A practical study of Azure LLM processing</p>
+          <h1 id="story-title">Two GPT models.<br>Three versions.<br><span>One scaling story.</span></h1>
+          <p class="lede">V1 tested whether capacity and pacing improve throughput. V2 kept GPT-5.4 mini but made the prompt harder. V3 switched to GPT-5 mini and the five-group processing pattern.</p>
+          <p><strong>The lesson: faster processing, fewer 429s, and correct answers are three different goals.</strong></p>
+          <div class="actions">
+            <a class="button primary" href="comparison.html">Compare all variables &rarr;</a>
+            <a class="button" href="approach.html">What works &amp; what to change</a>
+          </div>
+        </div>
+        <aside class="hero-panel" aria-label="Exact GPT models tested">
+          <p class="kicker">The models, explicitly</p>
+          <h2>Application version &ne; GPT version</h2>
+          <div class="model-entry"><span class="version">V1 + V2</span><strong>GPT-5.4 mini</strong><code>@@MODEL_54_VERSION@@</code><p>Same model build. Different prompt complexity and test configuration.</p></div>
+          <div class="model-entry"><span class="version">V3</span><strong>GPT-5 mini</strong><code>@@MODEL_5_VERSION@@</code><p>Not GPT-5.4 mini. The v2 prompt stayed unchanged; capacity and execution pattern changed.</p></div>
+          <p class="small">Both use US Data Zone inference. This is not a controlled model-ranking experiment.</p>
+        </aside>
+      </section>
+      <div class="trust-strip" aria-label="Evidence boundaries"><span>Entirely synthetic inputs</span><span>Measured Azure requests</span><span>No customer data or credentials</span><span>Static, timestamped evidence</span></div>
+
+      <section aria-labelledby="findings-title">
+        <p class="kicker">What the evidence says</p>
+        <h2 id="findings-title">What worked. What did not. What is unresolved.</h2>
+        <div class="finding-list">
+          <article class="finding">
+            <span class="chapter-number">01</span>
+            <div><p class="version">V1 &middot; GPT-5.4 MINI &middot; SIMPLE TASK</p><h3>More parallelism helped after the client cap allowed it.</h3><p>For 100 matched compact records, sequential took <strong>@@V1_SEQ_TIME@@</strong> and five-worker parallel took <strong>@@V1_PAR_TIME@@</strong> at a 120 RPM client cap. Both processed every record with no observed 429s. At 60 RPM, throughput was nearly flat.</p><p class="finding-verdict"><strong>Worked:</strong> coordinated pacing, adequate allocation, and resumable processing. <strong>Not proven:</strong> unlimited scaling or a universal speedup.</p></div>
+            <a class="button" href="v1.html">V1 evidence &rarr;</a>
+          </article>
+          <article class="finding">
+            <span class="chapter-number">02</span>
+            <div><p class="version">V2 &middot; GPT-5.4 MINI &middot; COMPLEX TASK</p><h3>All requests completed. Most analyses still failed strict checks.</h3><p>The active 425-route prompt produced <strong>39/39 schema-valid outputs</strong> across three modes, with no observed 429s. Only <strong>1/13 records per mode</strong> passed every gold-field and rule check.</p><p class="finding-verdict"><strong>Worked:</strong> processing and throttling control. <strong>Failed:</strong> semantic acceptance, including confidence and cause-extraction rules.</p></div>
+            <a class="button" href="v2.html">V2 evidence &rarr;</a>
+          </article>
+          <article class="finding">
+            <span class="chapter-number">03</span>
+            <div><p class="version">V3 &middot; GPT-5 MINI &middot; SAME COMPLEX PROMPT</p><h3>A lower shared allocation exposed throttling again.</h3><p>@@V3_STORY@@</p><p class="finding-verdict"><strong>Known:</strong> five online groups share one quota; they are not Azure Batch jobs. <strong>Unresolved:</strong> the full sequential-versus-grouped outcome.</p></div>
+            <a class="button" href="v3.html">V3 evidence &rarr;</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="evidence" aria-labelledby="headline-compare-title">
+        <div class="section-heading"><div><p class="kicker">At a glance</p><h2 id="headline-compare-title">The differences that matter.</h2><p>The models are only part of the explanation. Workload size, quota, pacing, and the meaning of &ldquo;batch&rdquo; all changed.</p></div></div>
+        <div class="table-shell" tabindex="0" role="region" aria-label="Version summary"><table class="comparison-table"><caption>Configuration overview, not a head-to-head speed ranking.</caption><thead>@@COMPARISON_HEAD@@</thead><tbody>@@SUMMARY_ROWS@@</tbody></table></div>
+        <div class="actions"><a class="button primary" href="comparison.html">Open the full comparison table &rarr;</a><a class="button" href="methodology.html">Understand the measurement limits</a></div>
+      </section>
+      <section class="evidence" aria-labelledby="reader-path-title">
+        <h2 id="reader-path-title">Choose your next step.</h2>
+        <div class="grid-three">
+          <article class="card"><h3>Explain the findings</h3><p>Use the configuration and outcomes tables to separate capacity, prompt complexity, and model differences.</p><a class="card-link" href="comparison.html">Compare versions &rarr;</a></article>
+          <article class="card"><h3>Plan a better workload</h3><p>Choose paced online processing or supported service Batch, then establish a separate accuracy gate.</p><a class="card-link" href="approach.html">What works &rarr;</a></article>
+          <article class="card"><h3>Run it yourself</h3><p>Download the code and actual Markdown prompts, preview costs, and follow the reproducible guides.</p><a class="card-link" href="resources.html">Guides and downloads &rarr;</a></article>
+        </div>
+      </section>

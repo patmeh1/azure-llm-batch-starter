@@ -1,0 +1,16 @@
+      <section class="page-intro"><p class="eyebrow">Everything needed to reproduce the work</p><h1>Guides, prompts,<br><span>code &amp; downloads.</span></h1><p class="lede">Start with the free offline demo or inspect the evidence first. Real Azure runs require your own identity, supported deployment, quota, and cost approval.</p><nav class="section-links" aria-label="Resource sections"><a href="#start">Quickstart</a><a href="#resources">All resources</a><a href="comparison.html">Comparison table</a></nav></section>
+      <section id="start" class="evidence" aria-labelledby="start-title">
+        <div class="section-heading"><div><p class="kicker">Explore before deploying</p><h2 id="start-title">Start locally. No Azure charges.</h2><p>The offline dashboard demonstrates the interface with clearly labeled simulated records. It does not submit inference.</p></div></div>
+        <div class="grid-two">
+          <div><div class="command-head"><h3>Open the offline demo</h3><button class="copy-button js-only" type="button" id="copy-command">Copy commands</button></div><pre><code id="quickstart-command">git clone https://github.com/patmeh1/azure-llm-batch-starter.git
+cd azure-llm-batch-starter
+python -m pip install -e ".[dev,cloud]"
+llm-batch dashboard --demo</code></pre><span class="copy-status" id="copy-status" role="status" aria-live="polite"></span><p class="small">Python 3.11+; Python 3.12 is the tested Functions runtime. Open <code>http://127.0.0.1:8501</code> locally. For real runs, follow the sign-in, model availability, residency, and cost review in the deployment guide.</p><div class="actions"><a class="button primary" href="@@REPO@@/releases">Downloads and releases &nearr;</a><a class="button" href="@@REPO@@/blob/main/docs/azure-demo.md">Deploy your own demo</a></div></div>
+          <figure><a href="assets/complex-dashboard-demo.png"><img class="dashboard-image" src="@@DASHBOARD_IMAGE@@" alt="Simulated dashboard showing thirteen schema-valid complex records, with a separate semantic needs-review result." width="1440" height="1900" loading="lazy" decoding="async"></a><figcaption>Illustrative dashboard screenshot: <strong>SIMULATED fixtures</strong>, not benchmark data. Open the image to inspect the full view.</figcaption></figure>
+        </div>
+      </section>
+
+      <section id="resources" class="evidence" aria-labelledby="resources-title">
+        <div class="section-heading"><div><p class="kicker">Everything behind the comparisons</p><h2 id="resources-title">Code, prompts, evidence, and guides.</h2><p>All links below point to public, customer-neutral material. No Azure account access is needed to read the code or evidence.</p></div></div>
+        <div class="resource-grid">@@RESOURCE_CARDS@@</div>
+      </section>

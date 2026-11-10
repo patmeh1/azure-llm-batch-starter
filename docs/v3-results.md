@@ -1,12 +1,24 @@
 # V3 GPT-5 mini results
 
-**The full 1,700-record-per-mode experiment is in progress. Final results are
-not available yet.** The sequential stage runs first; five concurrent groups
-of 340 run afterward against the same deployment.
+**The full 1,700-record-per-mode experiment is interrupted and incomplete.
+Final comparison results are not available.** The last recorded request
+activity is **2026-11-09 22:05:28 UTC**. A subsequent process check found no
+matching experiment runner; the interruption cause is not established.
+
+The preserved checkpoint contains **654 schema-valid sequential records**,
+zero final record failures, **1,046 pending records**, and **641 HTTP 429
+attempts**. The five concurrent groups of 340 have not started. An in-flight
+request without a saved result is not counted as successful.
+
+No new paid run was started during the website update. The original checkpoint
+and private artifacts are preserved for investigation and explicit recovery.
 
 The [machine-readable snapshot](v3-results.json) includes its observation
 timestamp and an explicit `results_final` flag. Partial metrics are not a
 completed throughput benchmark or proof of a zero-429 outcome.
+Its `observed_at` means the snapshot was inspected, not that inference made
+progress at that time. The snapshot also records `last_activity_at` and the
+checkpoint's original state separately from the observed interrupted state.
 
 ## Verified setup
 

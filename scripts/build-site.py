@@ -15,6 +15,56 @@ from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "https://github.com/patmeh1/azure-llm-batch-starter"
+PAGES = {
+    "index.html": (
+        "overview",
+        "Overview",
+        "Two GPT models, three versions",
+        "The story of capacity, prompt complexity, and model choice across three synthetic Azure LLM experiments.",
+    ),
+    "comparison.html": (
+        "comparison",
+        "Compare versions",
+        "V1 vs V2 vs V3 comparison",
+        "Compare exact GPT models, prompt workloads, quotas, pacing, processing modes, accuracy, costs, and evidence status.",
+    ),
+    "v1.html": (
+        "v1",
+        "V1 baseline",
+        "V1: GPT-5.4 mini baseline",
+        "Measured GPT-5.4 mini compact, token-stress, and service-Batch capacity findings.",
+    ),
+    "v2.html": (
+        "v2",
+        "V2 complexity",
+        "V2: GPT-5.4 mini complex prompts",
+        "Complex synthetic prompts processed without 429s, but all three semantic acceptance gates failed.",
+    ),
+    "v3.html": (
+        "v3",
+        "V3 GPT-5 mini",
+        "V3: GPT-5 mini grouped requests",
+        "Timestamped evidence for 1,700 sequential requests versus five client-side groups at 150K TPM.",
+    ),
+    "approach.html": (
+        "approach",
+        "What works",
+        "What works and what to change",
+        "Evidence-based guidance on quota, pacing, service Batch, and independent semantic quality evaluation.",
+    ),
+    "resources.html": (
+        "resources",
+        "Resources",
+        "Guides, prompts, code and downloads",
+        "Public prompt files, guides, load scenarios, source code, measured output examples, and releases.",
+    ),
+    "methodology.html": (
+        "methodology",
+        "Methodology",
+        "How to read the evidence",
+        "What is comparable across versions and why these synthetic experiments are not a model leaderboard.",
+    ),
+}
 DATA_FILES = {
     "v1-results.json": "live-results.json",
     "v2-results.json": "complex-v2-results.json",
@@ -230,10 +280,16 @@ def render_v3(value: dict[str, Any]) -> dict[str, str]:
             + "</tbody></table></div>"
         )
     else:
+        execution = (
+            "The sequential checkpoint is incomplete and no active runner was observed at the latest check. "
+            "The interruption cause is not established; no new paid run was started."
+            if value["execution_status"] == "interrupted"
+            else "The sequential stage runs first; five fixed groups follow."
+        )
         notice = (
             f"<strong>{html.escape(label)}. Final comparison results are not available.</strong>"
-            "<p>The sequential stage runs first; five fixed groups follow. Partial successes and 429 counts "
-            "are progress observations, not final latency, throughput, or quality results.</p>"
+            f"<p>{execution} Partial successes and 429 counts "
+            "are observations, not final latency, throughput, or quality results.</p>"
         )
         caption = (
             "Progress only. Dashes mean not yet measured, not zero. Final durations are withheld."
@@ -242,7 +298,7 @@ def render_v3(value: dict[str, Any]) -> dict[str, str]:
     progress = measured_done * 100 / (expected_total * 2)
     progress_html = (
         '<div class="card" style="margin-block:1.25rem"><div class="status-line">'
-        f"<strong>{count(measured_done)} / {count(expected_total * 2)} records have terminal outcomes</strong>"
+        f"<strong>{count(measured_done)} / {count(expected_total * 2)} record evaluations have terminal outcomes</strong>"
         f'<span class="small">{progress:.1f}% of the two-mode workload; not an ETA or success rate</span></div>'
         f'<div class="progress-track" role="progressbar" aria-label="V3 records with terminal outcomes" '
         f'aria-valuemin="0" aria-valuemax="{int(expected_total * 2)}" aria-valuenow="{int(measured_done)}">'
@@ -260,6 +316,460 @@ def render_v3(value: dict[str, Any]) -> dict[str, str]:
         "V3_PROGRESS": progress_html,
         "V3_QUALITY": quality_html,
         "V3_BUDGET": money(value["conservative_all_attempts_estimate_usd"], 2),
+        "V3_FRESHNESS": (
+            f"Last recorded activity: {utc_label(value['last_activity_at'])}."
+            if value.get("last_activity_at")
+            else "Snapshot time is not a continuous liveness check."
+        ),
+    }
+
+
+def compare_versions(v1: dict[str, Any], v2: dict[str, Any], v3: dict[str, Any]) -> dict[str, str]:
+    experiments = {row["scenario"]: row for row in v1["experiments"]}
+    baseline = [
+        experiments["compact-sequential-120rpm"],
+        experiments["compact-parallel-120rpm"],
+        experiments["cloud-compact-100"],
+    ]
+    complex_rows = {row["mode"]: row for row in v2["stages"]}
+    modes = ("sequential", "parallel", "batch")
+    if set(complex_rows) != set(modes):
+        raise ValueError("The matched v2 comparison needs all three unique modes")
+    model1, model2, model3 = baseline[0]["settings"], v2["model"], v3["configured_model"]
+    if any(
+        row["settings"]["model_name"] != "gpt-5.4-mini"
+        or row["settings"]["model_version"] != "2026-03-17"
+        for row in baseline
+    ):
+        raise ValueError("V1 model identity differs from the comparison story")
+    if (
+        model3["model_version"] != "2025-08-07"
+        or model3["max_output_tokens"] != 2048
+        or model3["reasoning_effort"] != "low"
+    ):
+        raise ValueError("V3 model or generation parameters differ from the comparison story")
+    if model2["reasoning_effort"] != "low":
+        raise ValueError("V2 reasoning setting differs from the comparison story")
+    for row in baseline + list(complex_rows.values()):
+        ratio(row)
+    if v2["configured_client_limits"] != {"rpm": 120, "tpm": 480000}:
+        raise ValueError("V2 pacing differs from the displayed matched experiment")
+
+    def detail(main: str, explanation: str = "") -> str:
+        return main + (f'<span class="cell-detail">{explanation}</span>' if explanation else "")
+
+    def lines(items: list[str]) -> str:
+        return '<ul class="cell-lines">' + "".join(f"<li>{item}</li>" for item in items) + "</ul>"
+
+    def row(label: str, cells: list[str]) -> str:
+        if len(cells) != 3:
+            raise ValueError("Comparison rows must contain three version values")
+        return (
+            f'<tr><th scope="row">{html.escape(label)}</th>'
+            + "".join(f"<td>{cell}</td>" for cell in cells)
+            + "</tr>"
+        )
+
+    def group(title: str) -> str:
+        return f'<tr class="group-row"><td colspan="4"><strong>{html.escape(title)}</strong></td></tr>'
+
+    def stage_lines(rows: list[dict[str, Any]], field: str, formatter: Any) -> str:
+        labels = ["Sequential", "Parallel, 5 workers", "Service Batch"]
+        return lines(
+            [
+                f"<strong>{label}:</strong> {formatter(result.get(field))}"
+                for label, result in zip(labels, rows, strict=True)
+            ]
+        )
+
+    v2_order = [complex_rows[mode] for mode in modes]
+    v3_order = [
+        next(row for row in v3["runs"] if row["mode"] == mode)
+        for mode in ("sequential", "client-batch")
+    ]
+    v3_final = v3["results_final"]
+    phase = (
+        "Completed"
+        if v3_final
+        else "Interrupted / incomplete"
+        if v3["execution_status"] == "interrupted"
+        else "In progress / incomplete"
+    )
+    v3_progress = lines(
+        [
+            f"<strong>{label}:</strong> {count(result.get('succeeded'))} / {count(result['record_count'])} schema-valid; {html.escape(result['status'].replace('_', ' '))}"
+            for label, result in zip(
+                ["Sequential", "Five fixed client groups"], v3_order, strict=True
+            )
+        ]
+    )
+    v3_429 = lines(
+        [
+            f"<strong>{label}:</strong> {count(result.get('errors_429'))}"
+            for label, result in zip(
+                ["Sequential", "Five fixed client groups"], v3_order, strict=True
+            )
+        ]
+    )
+    v3_final_time = (
+        lines(
+            [
+                f"<strong>{label}:</strong> {seconds(result.get('elapsed_seconds'))}"
+                for label, result in zip(
+                    ["Sequential", "Five fixed client groups"], v3_order, strict=True
+                )
+            ]
+        )
+        if v3_final
+        else detail(
+            "<strong>Not available</strong>",
+            "No final sequential-versus-grouped duration comparison. Elapsed time of an incomplete checkpoint is not a completed benchmark.",
+        )
+    )
+    v3_quality = (
+        lines(
+            [
+                f"<strong>{label}:</strong> {percent((result.get('quality') or {}).get('field_accuracy', {}).get('primary_route'))} primary-route accuracy"
+                for label, result in zip(
+                    ["Sequential", "Five fixed client groups"], v3_order, strict=True
+                )
+            ]
+        )
+        if v3_final
+        else detail(
+            "<strong>Final comparison withheld</strong>",
+            "Do not rank models using partial quality counts or unstarted grouped work.",
+        )
+    )
+    v3_cost = (
+        lines(
+            [
+                f"<strong>{label}:</strong> {money(result.get('priced_usage_estimate_usd'))}"
+                for label, result in zip(
+                    ["Sequential", "Five fixed client groups"], v3_order, strict=True
+                )
+            ]
+        )
+        if v3_final
+        else detail(
+            "<strong>Not final</strong>",
+            f"Conservative all-attempt plan: {money(v3['conservative_all_attempts_estimate_usd'], 2)}. A planned ceiling is not measured spend.",
+        )
+    )
+    model_cells = [
+        f"<strong>GPT-5.4 mini</strong><br><code>{html.escape(model1['model_version'])}</code>",
+        f"<strong>GPT-5.4 mini</strong><br><code>{html.escape(model2['version'])}</code>",
+        f"<strong>GPT-5 mini</strong><br><code>{html.escape(model3['model_version'])}</code>",
+    ]
+    prompt_cells = [
+        detail(
+            "Short classification prompt",
+            "Separate high-token stress profile used synthetic reference padding, not the active complex taxonomy.",
+        ),
+        detail(
+            "Active complex-v2 Markdown",
+            "425 hierarchical routes, 850 examples, and evidence/confidence rules.",
+        ),
+        detail(
+            "<strong>Identical v2 prompt/schema bundle</strong>",
+            "Verified by the same bundle hash; no customer text is used.",
+        ),
+    ]
+    count_cells = [
+        detail(
+            "100 records in the matched comparison",
+            "Separate 6-record token bursts and 1,700 compact-record recovery test.",
+        ),
+        detail(
+            f"{count(v2['dataset']['count'])} records per mode",
+            "One seeded case per scenario family; not all 425 routes covered.",
+        ),
+        detail(
+            f"{count(v3['specification']['count'])} records per mode",
+            "Same dataset twice; second stage is five contiguous groups of 340.",
+        ),
+    ]
+    mode_cells = [
+        "Sequential online; 5-worker parallel online; <strong>actual Azure Batch API</strong>.",
+        "Sequential online; 5-worker parallel online; <strong>actual Azure Batch API</strong>.",
+        "Sequential online; <strong>5 fixed client-side online groups</strong>. Not Azure Batch API.",
+    ]
+    service_cells = [
+        detail(
+            "150K TPM / 150 RPM for compact online",
+            "Separate high-token capacity experiment: 150K &rarr; 600K TPM. Service Batch has separate quota.",
+        ),
+        detail(
+            "600K TPM / 600 RPM online",
+            "Confirmed response limits. Service Batch has separate enqueued-token quota.",
+        ),
+        detail(
+            f"{count(v3['specification']['expected_tpm'])} TPM / {count(v3['specification']['expected_rpm'])} RPM",
+            "One DataZoneStandard deployment shared by all five groups; an explicit test assumption.",
+        ),
+    ]
+    pacing_cells = [
+        detail(
+            "Shared client admission control",
+            "Compact comparison at 120 RPM; additional 60 RPM control. Bounded stress bursts deliberately unpaced.",
+        ),
+        detail(
+            f"{count(v2['configured_client_limits']['tpm'])} TPM / {count(v2['configured_client_limits']['rpm'])} RPM client limits",
+            "Paced online workers; 65-second cooldowns between stages.",
+        ),
+        detail(
+            "<strong>Initial attempts deliberately unpaced</strong>",
+            "Up to 3 attempts with service-guided backoff; at most 5,100 attempts and 10 hours per mode.",
+        ),
+    ]
+    output_cells = [
+        f"{count(model1['max_output_tokens'])} output tokens; low reasoning",
+        f"{count(model2['max_output_tokens'])} output tokens; low reasoning",
+        f"{count(model3['max_output_tokens'])} output tokens; low reasoning",
+    ]
+    input_v2 = "&ndash;".join(count(n) for n in v2["estimated_input_token_range"])
+    input_v1 = "&ndash;".join(
+        count(n) for n in baseline[0]["reported_input_tokens_per_response_range"]
+    )
+    input_cells = [
+        detail(
+            f"{input_v1} API-reported tokens/compact record",
+            "Separate large-input bursts: approximately 72K; calibrated profile: approximately 74.6K estimated.",
+        ),
+        detail(
+            f"{input_v2} estimated tokens/record",
+            "Active taxonomy and rules, not filler. API-reported input is lower.",
+        ),
+        detail(
+            "Approximately 32.3K&ndash;32.6K estimated tokens/record",
+            "Same active taxonomy as v2; transcript variation spans 1,700 records.",
+        ),
+    ]
+    config = [
+        group("01 / Model identity and experiment design"),
+        row(
+            "Application release",
+            [
+                f'<a href="{REPO}/releases/tag/v{version}">{version}</a>'
+                for version in ("0.1.1", "0.2.0", "0.3.0")
+            ],
+        ),
+        row("Exact GPT model / build", model_cells),
+        row(
+            "Question being tested",
+            [
+                "How do client pacing, service allocation, and execution mode affect throughput?",
+                "Can the same model follow complex taxonomy and evidence rules while processing reliably?",
+                "What happens with GPT-5 mini and sequential versus five fixed online streams at 150K TPM?",
+            ],
+        ),
+        row("Prompt workload", prompt_cells),
+        row("Input volume", input_cells),
+        row("Dataset size", count_cells),
+        row(
+            "Output contract",
+            [
+                "3 fields: category, priority, summary.",
+                "11 analytical fields; application adds the ID to CSV.",
+                "Exactly the same 11-field schema and gold-check rules as v2.",
+            ],
+        ),
+        group("02 / Capacity, execution, and generation"),
+        row("Processing modes", mode_cells),
+        row("Service allocation", service_cells),
+        row("Client pacing / retries", pacing_cells),
+        row("Generation settings", output_cells),
+        row(
+            "Azure SKU / geography",
+            [
+                "DataZoneStandard + DataZoneBatch; US Data Zone; South Central US resources.",
+                "DataZoneStandard + DataZoneBatch; US Data Zone; South Central US resources.",
+                "DataZoneStandard only; US Data Zone; South Central US resource.",
+            ],
+        ),
+        row(
+            "Actual Azure Batch API",
+            [
+                "<strong>Tested successfully</strong> on GPT-5.4 mini.",
+                "<strong>Tested successfully</strong> on GPT-5.4 mini, including complex prompts.",
+                "<strong>Not used.</strong> GPT-5 mini DataZoneBatch was not listed in the checked US catalogs. Pricing meters alone are not availability proof.",
+            ],
+        ),
+        row(
+            "Execution host",
+            [
+                "Local online coordinator; Azure Durable Functions / Scheduler for hosted Batch.",
+                "Local online coordinator; Azure Durable Functions / Scheduler for hosted Batch.",
+                "Local client runner for both modes; SQLite checkpoints. The model executes in Azure.",
+            ],
+        ),
+    ]
+    outcomes = [
+        group("03 / Completion and observed performance"),
+        row(
+            "Evidence state",
+            [
+                detail(tag("Measured"), html.escape(v1["measured_date_utc"])),
+                detail(
+                    tag("Measured; quality failed", "attention"),
+                    html.escape(v2["measured_date_utc"]),
+                ),
+                detail(
+                    tag(phase, "attention" if not v3_final else ""), utc_label(v3["observed_at"])
+                ),
+            ],
+        ),
+        row(
+            "Full observed duration",
+            [
+                stage_lines(baseline, "full_observed_elapsed_seconds", seconds),
+                stage_lines(v2_order, "full_observed_elapsed_seconds", seconds),
+                v3_final_time,
+            ],
+        ),
+        row(
+            "Schema-valid processing",
+            [
+                stage_lines(baseline, "succeeded", lambda n: count(n) + " / 100"),
+                stage_lines(v2_order, "succeeded", lambda n: count(n) + " / 13"),
+                v3_progress,
+            ],
+        ),
+        row(
+            "HTTP 429 attempts",
+            [
+                detail(
+                    "0 in all three compact-comparison modes",
+                    "Separate large-token, 5-worker burst: 3/6 throttled at 150K TPM; 0/6 at 600K TPM.",
+                ),
+                "0 across all 39 responses in the matched complex comparison.",
+                detail(
+                    v3_429,
+                    "Partial while incomplete. An attempted request can throttle and later recover; 429 count is not final failed-record count.",
+                ),
+            ],
+        ),
+        group("04 / Quality, costs, and the practical lesson"),
+        row(
+            "Semantic accuracy",
+            [
+                stage_lines(baseline, "label_accuracy", percent)
+                + '<span class="cell-detail">Simple category label only; not the complex v2/v3 rubric.</span>',
+                lines(
+                    [
+                        f"<strong>{label}:</strong> {percent(r['quality']['field_accuracy']['primary_route'])} primary route"
+                        for label, r in zip(
+                            ["Sequential", "Parallel", "Service Batch"], v2_order, strict=True
+                        )
+                    ]
+                )
+                + '<span class="cell-detail">Every-field/rule pass: 1/13 in each mode.</span>',
+                v3_quality,
+            ],
+        ),
+        row(
+            "Semantic acceptance gate",
+            [
+                "No equivalent complex eleven-field gate; do not compare this score directly with v2/v3.",
+                "<strong>Failed in all three modes.</strong> Schema success did not imply correct routes, causes, or confidence behavior.",
+                "See final per-mode quality report; completion alone is not acceptance."
+                if v3_final
+                else "<strong>Not final.</strong> Complete the experiment and evaluate each mode before drawing a conclusion.",
+            ],
+        ),
+        row(
+            "Reported model-usage estimate",
+            [
+                stage_lines(baseline, "priced_usage_estimate_usd", money),
+                stage_lines(v2_order, "priced_usage_estimate_usd", money),
+                v3_cost,
+            ],
+        ),
+        row(
+            "Cache and cost caveat",
+            [
+                "Compact rows had no reported cache hits; large-input profiles had different cache behavior. Infrastructure excluded.",
+                "Cached input differed by mode. Sequential ran first; cooldowns do not guarantee a cold cache. Infrastructure excluded.",
+                "The grouped mode may inherit a warmed prefix. No Batch API discount applies to client-side groups. Infrastructure excluded.",
+            ],
+        ),
+        row(
+            "What demonstrably worked",
+            [
+                "Paced parallel compact processing and real Batch reconciliation. Recovery retained the original 1,700-record Batch job.",
+                "Transport, schema validation, and reconciliation completed; quality checks exposed mistakes rather than hiding them.",
+                "The intended model and 150K limits were verified; partial requests and 429s were recorded. Full comparison remains incomplete."
+                if not v3_final
+                else "Model, allocation, and both stage outcomes are recorded; judge success against the final processing and quality checks.",
+            ],
+        ),
+        row(
+            "Main takeaway",
+            [
+                "<strong>Capacity and pacing come before adding workers.</strong>",
+                "<strong>Fewer 429s do not make complex answers correct.</strong>",
+                "<strong>Five client groups do not create five model quotas.</strong>",
+            ],
+        ),
+    ]
+    summary = "".join(
+        [
+            row("Exact GPT model", model_cells),
+            row("Prompt workload", prompt_cells),
+            row("Dataset size", count_cells),
+            row("Processing modes", mode_cells),
+            row("Service allocation", service_cells),
+            row(
+                "Main result",
+                [
+                    "Compact modes completed; larger allocation reduced throttling in a bounded burst.",
+                    "All processing completed; all semantic gates failed.",
+                    detail(
+                        phase,
+                        "No final model or grouping speed comparison."
+                        if not v3_final
+                        else "Read both processing and semantic outcomes.",
+                    ),
+                ],
+            ),
+        ]
+    )
+    head = (
+        '<tr><th scope="col">Variable</th>'
+        f'<th scope="col"><span>V1 / BASELINE</span>GPT-5.4 mini<small>{html.escape(model1["model_version"])}</small></th>'
+        f'<th scope="col"><span>V2 / COMPLEXITY</span>GPT-5.4 mini<small>{html.escape(model2["version"])}</small></th>'
+        f'<th scope="col"><span>V3 / GROUPED REQUESTS</span>GPT-5 mini<small>{html.escape(model3["model_version"])}</small></th></tr>'
+    )
+    seq, grouped = v3_order
+    story = (
+        (
+            f"The latest checkpoint records <strong>{count(seq.get('succeeded'))} / {count(seq['record_count'])}</strong> "
+            f"schema-valid sequential records and <strong>{count(seq.get('errors_429'))} 429 attempts</strong>. "
+            + (
+                "The run is interrupted and incomplete; the grouped comparison has no final result."
+                if v3["execution_status"] == "interrupted"
+                else "The comparison is incomplete; final grouped performance is not established."
+            )
+        )
+        if not v3_final
+        else (
+            f"Sequential and five-group modes are terminal, with <strong>{count(seq.get('succeeded'))}</strong> and "
+            f"<strong>{count(grouped.get('succeeded'))}</strong> schema-valid records. Read the separate quality and retry outcomes before judging success."
+        )
+    )
+    return {
+        "MODEL_54_VERSION": html.escape(model2["version"]),
+        "MODEL_5_VERSION": html.escape(model3["model_version"]),
+        "V1_SEQ_TIME": seconds(baseline[0]["full_observed_elapsed_seconds"]),
+        "V1_PAR_TIME": seconds(baseline[1]["full_observed_elapsed_seconds"]),
+        "COMPARISON_HEAD": head,
+        "SUMMARY_ROWS": summary,
+        "CONFIGURATION_ROWS": "".join(config),
+        "OUTCOME_ROWS": "".join(outcomes),
+        "V3_STORY": story,
+        "V3_CONCLUSION": "The incomplete evidence cannot establish final grouped performance or model superiority."
+        if not v3_final
+        else "The terminal outcomes describe this particular workload and allocation, not a universal model ranking or scaling guarantee.",
     }
 
 
@@ -498,18 +1008,29 @@ def validate_links(document: str, output: Path, root: Path) -> None:
             if url[1:] not in audit.ids:
                 raise ValueError(f"Broken section link: {url}")
         elif not urlparse(url).scheme:
-            if not (output / unquote(url.split("#")[0])).is_file():
+            parsed = urlparse(url)
+            target = (output / unquote(parsed.path)).resolve()
+            if not target.is_relative_to(output.resolve()) or not target.is_file():
                 raise ValueError(f"Missing site asset: {url}")
+            if parsed.fragment and target.suffix == ".html":
+                linked = LinkAudit()
+                linked.feed(target.read_text(encoding="utf-8"))
+                if unquote(parsed.fragment) not in linked.ids:
+                    raise ValueError(f"Broken cross-page section link: {url}")
         elif url.startswith((REPO + "/blob/main/", REPO + "/tree/main/")):
             relative = url.split("/main/", 1)[1].split("#")[0]
             if not (root / unquote(relative)).exists():
                 raise ValueError(f"Broken repository link: {url}")
 
 
+def render_tokens(template: str, values: dict[str, str]) -> str:
+    return re.sub(r"@@([A-Z0-9_]+)@@", lambda match: values[match[1]], template)
+
+
 def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
     output = output or root / "_site"
     allowed = {
-        "index.html",
+        *PAGES,
         ".nojekyll",
         "assets/complex-dashboard-demo.png",
         *(f"data/{name}" for name in DATA_FILES),
@@ -632,11 +1153,41 @@ def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
         ).decode("ascii"),
         "BUILD_TIME": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         **render_v3(v3),
+        **compare_versions(v1, v2, v3),
     }
-    template = (root / "site" / "index.html").read_text(encoding="utf-8")
-    document = re.sub(r"@@([A-Z0-9_]+)@@", lambda match: replacements[match[1]], template)
-    if "@@" in document:
-        raise ValueError("Unresolved site template marker")
+    layout = (root / "site" / "layout.html").read_text(encoding="utf-8")
+    pages = {}
+    filenames = list(PAGES)
+    for index, (filename, (template_name, _nav_label, title, description)) in enumerate(
+        PAGES.items()
+    ):
+        content = (root / "site" / "pages" / f"{template_name}.html").read_text(encoding="utf-8")
+        navigation = "".join(
+            f'<a href="{target}"'
+            + (' aria-current="page"' if target == filename else "")
+            + f">{html.escape(page[1])}</a>"
+            for target, page in PAGES.items()
+        )
+        previous = filenames[index - 1] if index else None
+        following = filenames[index + 1] if index + 1 < len(filenames) else "index.html"
+        next_links = (
+            f'<a href="{previous}">&larr; {html.escape(PAGES[previous][1])}</a>'
+            if previous
+            else '<a href="resources.html">Try the starter</a>'
+        ) + f'<a href="{following}">{html.escape(PAGES[following][1])} &rarr;</a>'
+        values = {
+            **replacements,
+            "PAGE_TITLE": html.escape(title),
+            "PAGE_DESCRIPTION": html.escape(description, quote=True),
+            "PAGE_FILE": filename,
+            "NAVIGATION": navigation,
+            "PAGE_NEXT": next_links,
+        }
+        values["PAGE_CONTENT"] = render_tokens(content, values)
+        document = render_tokens(layout, values)
+        if "@@" in document:
+            raise ValueError(f"Unresolved site template marker in {filename}")
+        pages[filename] = document
     output.mkdir(parents=True, exist_ok=True)
     (output / "data").mkdir(exist_ok=True)
     (output / "assets").mkdir(exist_ok=True)
@@ -649,8 +1200,10 @@ def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
     )
     for name in PROMPTS:
         shutil.copyfile(root / "prompts" / name, output / "prompts" / name)
-    validate_links(document, output, root)
-    (output / "index.html").write_text(document, encoding="utf-8", newline="\n")
+    for filename, document in pages.items():
+        (output / filename).write_text(document, encoding="utf-8", newline="\n")
+    for document in pages.values():
+        validate_links(document, output, root)
     (output / ".nojekyll").write_text("", encoding="utf-8")
     return output
 
@@ -658,5 +1211,5 @@ def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
 if __name__ == "__main__":
     destination = build_site()
     print(
-        f"Built {destination.name}: static HTML, allowlisted public evidence, Markdown prompts, and one simulated screenshot."
+        f"Built {destination.name}: {len(PAGES)} real HTML pages, validated cross-page links, public evidence, and Markdown prompts."
     )

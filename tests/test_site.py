@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -28,10 +29,23 @@ def test_build_contains_real_evidence_and_only_allowlisted_assets(site_root):
     output = site.build_site(site_root)
     document = (output / "index.html").read_text()
     assert "@@" not in document
-    assert "90.34 s" in document and "14.38 s" in document
-    assert "All 39 responses were schema-valid. All three acceptance gates failed." in document
-    assert "data:image/png;base64," in document
+    assert "90.34 s" in document
+    assert "14.38 s" in (output / "comparison.html").read_text()
+    version_two = (output / "v2.html").read_text()
+    assert "All 39 responses were schema-valid. All three acceptance gates failed." in version_two
+    assert "data:image/png;base64," in (output / "resources.html").read_text()
     assert "connect-src 'none'" in document
+    assert {path.name for path in output.glob("*.html")} == set(site.PAGES)
+    titles = set()
+    for path in output.glob("*.html"):
+        page = path.read_text()
+        assert len(re.findall(r'<a\b[^>]*\baria-current="page"', page)) == 1
+        assert page.count("<h1") == 1
+        assert f'href="{path.name}" aria-current="page"' in page
+        assert f'azure-llm-batch-starter/{path.name}"' in page
+        titles.add(re.search(r"<title>(.*?)</title>", page)[1])
+        assert "@@" not in page
+    assert len(titles) == len(site.PAGES)
     assert len(list((output / "data").glob("*.json"))) == 4
     assert len(list((output / "prompts").glob("*.md"))) == 4
     assert not (output / ".azure").exists()
@@ -122,6 +136,95 @@ def test_escaped_scenario_text_cannot_inject_markup(site_root):
     value["experiments"][-1]["scenario"] = "<img onerror=alert(1)>"
     source.write_text(json.dumps(value), encoding="utf-8")
     output = site.build_site(site_root)
-    text = (output / "index.html").read_text()
+    text = (output / "v1.html").read_text()
     assert "&lt;img onerror=alert(1)&gt;" in text
     assert "<img onerror=alert(1)>" not in text
+
+
+def test_comparison_table_explains_model_identity_and_confounded_variables(site_root):
+    output = site.build_site(site_root)
+    page = (output / "comparison.html").read_text()
+    assert page.count("2026-03-17") >= 4
+    assert page.count("2025-08-07") >= 2
+    assert "GPT-5.4 mini" in page and "GPT-5 mini" in page
+    for label in (
+        "Exact GPT model / build",
+        "Prompt workload",
+        "Input volume",
+        "Dataset size",
+        "Output contract",
+        "Processing modes",
+        "Service allocation",
+        "Client pacing / retries",
+        "Generation settings",
+        "Azure SKU / geography",
+        "Actual Azure Batch API",
+        "Full observed duration",
+        "Schema-valid processing",
+        "HTTP 429 attempts",
+        "Semantic accuracy",
+        "Semantic acceptance gate",
+        "Reported model-usage estimate",
+    ):
+        assert label in page
+    assert "Do not attribute the differences to the GPT model alone." in page
+    assert "1/13 in each mode." in page
+    assert "145&ndash;153" in page
+    assert "Final comparison withheld" in page
+
+
+def test_final_comparison_does_not_keep_stale_incomplete_claims(site_root):
+    source = site_root / "docs" / "v3-results.json"
+    value = json.loads(source.read_text())
+    value.update(results_final=True, execution_status="completed_with_findings")
+    for stage in value["runs"]:
+        stage.update(
+            status="succeeded",
+            succeeded=1700,
+            failed=0,
+            pending=0,
+            elapsed_seconds=1234,
+            errors_429=5,
+            priced_usage_estimate_usd=1.5,
+            quality={
+                "field_accuracy": {"primary_route": 0.9, "confidence": 0.8},
+                "passed_records": 1000,
+            },
+            semantic_status="needs_review",
+        )
+    source.write_text(json.dumps(value))
+    output = site.build_site(site_root)
+    comparison = (output / "comparison.html").read_text()
+    assert "1,234.00 s" in comparison
+    assert "Final comparison withheld" not in comparison
+    assert "The incomplete evidence cannot establish" not in comparison
+    assert "Both modes are terminal" in (output / "v3.html").read_text()
+
+
+def test_cross_page_fragments_are_validated(site_root):
+    template = site_root / "site" / "pages" / "overview.html"
+    template.write_text(template.read_text() + '<a href="resources.html#missing">Broken</a>')
+    with pytest.raises(ValueError, match="cross-page section"):
+        site.build_site(site_root)
+
+
+def test_model_change_cannot_silently_relabel_the_comparison(site_root):
+    source = site_root / "docs" / "complex-v2-results.json"
+    value = json.loads(source.read_text())
+    value["model"]["name"] = "gpt-5-mini"
+    source.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="model/generation"):
+        site.build_site(site_root)
+
+
+def test_interrupted_v3_does_not_claim_a_running_job():
+    value = json.loads((ROOT / "docs" / "v3-results.json").read_text())
+    value.update(
+        results_final=False,
+        execution_status="interrupted",
+        last_activity_at="2026-11-09T22:05:28+00:00",
+    )
+    result = site.render_v3(value)
+    assert "Run interrupted" in result["V3_STATUS"]
+    assert "no active runner was observed" in result["V3_NOTICE"]
+    assert "Nov 09, 2026 at 22:05 UTC" in result["V3_FRESHNESS"]

@@ -1,0 +1,21 @@
+      <section id="methodology" class="evidence" aria-labelledby="methodology-title">
+        <div class="page-intro"><p class="eyebrow">Evidence boundaries</p><h1 id="methodology-title">A useful experiment.<br><span>Not a model leaderboard.</span></h1><p class="lede">These versions answer different questions. Their setup and outcome variables must be read together.</p></div>
+        <div class="table-shell" tabindex="0" role="region" aria-label="What can be compared fairly"><table><caption>Where the experiment supports a comparison and where it does not.</caption><thead><tr><th scope="col">Comparison</th><th scope="col">What is held constant</th><th scope="col">How to interpret it</th></tr></thead><tbody>
+          <tr><th scope="row">Modes within the v1 100-record run</th><td>Model build, prompt, records, output ceiling</td><td>Useful observations of pacing and asynchronous turnaround; cache and service variability still matter.</td></tr>
+          <tr><th scope="row">Modes within the v2 13-case run</th><td>Model build, active prompt/schema, seed, records, output ceiling</td><td>Compare complete processing time and each quality gate. One run cannot establish that concurrency causes a semantic difference.</td></tr>
+          <tr><th scope="row">V1 versus v2</th><td>GPT-5.4 mini build</td><td>Prompt complexity, count, quota, and output ceiling differ. Not a controlled prompt-only performance comparison.</td></tr>
+          <tr><th scope="row">V2 versus v3</th><td>Complex prompt/schema bundle, low reasoning effort, output ceiling</td><td>Model, quota, request pacing, dataset size, and grouping differ. Not a controlled GPT-5.4 mini versus GPT-5 mini ranking.</td></tr>
+        </tbody></table></div>
+        <h2 style="margin-top:2rem">What the evidence does not promise.</h2>
+        <div class="limitations"><ul>
+          <li>These are synthetic reference experiments, not production benchmarks, a performance SLA, or a zero-429 guarantee.</li>
+          <li>Compare matched inputs within a test. Different record counts, models, allocations, output budgets, cache states, and prompts are not directly interchangeable.</li>
+          <li>Full wall time includes waiting and failures. Do not infer per-record Batch latency by dividing total turnaround by record count.</li>
+          <li>Schema-valid output is not semantic accuracy. Exact-match synthetic grading has its own limitations and does not replace evaluation on an authorized real workload.</li>
+          <li>Usage estimates apply configured token rates to reported usage. They are not invoices and exclude infrastructure, missing usage, taxes, and billing adjustments.</li>
+          <li>US Data Zone inference is broader than a single resource region. Verify current model/SKU availability, quota, network access, and residency requirements before deployment.</li>
+          <li>This static page is built from committed public evidence. V3 progress is timestamped; it does not refresh directly from the running job or any Azure endpoint.</li>
+          <li>Keep real customer records, credentials, private configuration, and raw cloud logs out of public repositories and demos.</li>
+        </ul></div>
+        <div class="evidence-links"><a href="@@REPO@@/blob/main/docs/metrics.md">Measurement definitions &nearr;</a><a href="@@REPO@@/blob/main/docs/testing.md">Validation and test methodology &nearr;</a><a href="@@REPO@@/blob/main/docs/regions.md">Regions and residency &nearr;</a></div>
+      </section>

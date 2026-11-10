@@ -19,13 +19,13 @@ PAGES = {
     "index.html": (
         "overview",
         "Overview",
-        "Two GPT models, four versions",
-        "The story of capacity, prompt complexity, and matched-quota routing across four synthetic Azure LLM experiments.",
+        "Two GPT models, five versions",
+        "The story of capacity, prompt complexity, routing, and measured request latency across five synthetic Azure LLM experiments.",
     ),
     "comparison.html": (
         "comparison",
         "Compare versions",
-        "V1 vs V2 vs V3 vs V4 comparison",
+        "V1 vs V2 vs V3 vs V4 vs V5 comparison",
         "Compare exact GPT models, prompt workloads, quotas, pacing, processing modes, accuracy, costs, and evidence status.",
     ),
     "v1.html": (
@@ -51,6 +51,12 @@ PAGES = {
         "V4 multi-deployment",
         "V4: one deployment versus three",
         "GPT-5 mini with unchanged complex prompts: one 150K deployment versus three 50K deployments, executed durably in Azure.",
+    ),
+    "v5.html": (
+        "v5",
+        "V5 smart routing",
+        "V5: quota-aware routing and average request time",
+        "520 records per arm on five GPT-5 mini deployments: matched reactive versus quota-aware scheduling with measured HTTP and record completion averages.",
     ),
     "approach.html": (
         "approach",
@@ -78,6 +84,8 @@ DATA_FILES = {
     "v3-partial-output-sample.json": "v3-partial-output-sample.json",
     "v4-results.json": "v4-results.json",
     "v4-output-samples.json": "v4-output-samples.json",
+    "v5-results.json": "v5-results.json",
+    "v5-output-samples.json": "v5-output-samples.json",
 }
 PROMPTS = ("simple-v1.md", "complex-system-v2.md", "complex-taxonomy-v2.md", "complex-user-v2.md")
 PRIVATE_KEYS = {
@@ -88,6 +96,7 @@ PRIVATE_KEYS = {
     "tenant_id",
     "subscription_id",
     "resource_id",
+    "model_resource_id",
     "managed_identity_client_id",
     "storage_account",
     "scheduler_endpoint",
@@ -521,10 +530,237 @@ def render_v4(value: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def validate_v5(value: dict[str, Any]) -> None:
+    final = value["results_final"]
+    if not isinstance(final, bool) or final != (value["execution_status"] == "completed"):
+        raise ValueError("V5 final flag contradicts its execution state")
+    spec, model = value["specification"], value["model"]
+    if (
+        spec["count"] != 520
+        or spec["workers"] != 5
+        or spec["max_attempts"] != 4
+        or model["model_name"] != "gpt-5-mini"
+        or model["model_version"] != "2025-08-07"
+        or model["max_output_tokens"] != 2048
+        or model["reasoning_effort"] != "low"
+        or value["active_aggregate_tpm_per_arm"] != 300000
+        or value["allocated_deployments_total"] != 5
+        or value["workload_profile"]["batch_api_used"] is not False
+    ):
+        raise ValueError("Review the V5 five-target 520-record narrative before changing its setup")
+    arms = [s["arm"] for s in value["stages"]]
+    if len(arms) != len(set(arms)) or set(arms) - {"reactive", "adaptive"}:
+        raise ValueError("Invalid V5 arm set")
+    if final and set(arms) != {"reactive", "adaptive"}:
+        raise ValueError("Final V5 evidence requires both benchmark arms")
+    if final:
+        warmups = value["warmups"]
+        if {s["arm"] for s in warmups} != {"reactive-warmup", "adaptive-warmup"} or len(
+            warmups
+        ) != 2:
+            raise ValueError("V5 warm-up accounting is incomplete")
+        if value["benchmark_valid"] != all(s["succeeded"] == 5 for s in warmups):
+            raise ValueError("V5 warm-up validity contradicts its outcomes")
+        expected_status = (
+            "needs_attention" if any(s["failed"] for s in value["stages"]) else "succeeded"
+        )
+        if value["processing_status"] != expected_status:
+            raise ValueError("V5 processing status contradicts its outcomes")
+    for stage in [*value["stages"], *value.get("warmups", [])]:
+        total = 5 if stage["arm"].endswith("-warmup") else 520
+        if stage["record_count"] != total:
+            raise ValueError("V5 record count differs from its declared stage")
+        ratio(stage)
+        if final and (
+            stage["pending"] != 0 or stage["status"] not in {"succeeded", "partial_failure"}
+        ):
+            raise ValueError("V5 final stages must reconcile every record")
+        targets = stage["target_metrics"]
+        expected = {"target-1": 100000, **{f"target-{i}": 50000 for i in range(2, 6)}}
+        if len(targets) != 5 or {t["alias"]: t["allocated_tpm"] for t in targets} != expected:
+            raise ValueError("V5 requires the same five-target 300K allocation in both arms")
+        for key in ("http_attempts", "errors_429"):
+            if sum(t[key] for t in targets) != stage[key]:
+                raise ValueError("V5 per-target attempt counts do not reconcile")
+        if final:
+            if stage["http_200_latency_measured_count"] != sum(t["responses_200"] for t in targets):
+                raise ValueError("V5 HTTP mean denominator differs from its 200 responses")
+            if (
+                stage["record_elapsed_measured_count"] != total
+                or stage["queue_to_completion_measured_count"] != total
+            ):
+                raise ValueError("V5 record timing coverage is incomplete")
+            if stage["successful_record_elapsed_measured_count"] != stage["succeeded"]:
+                raise ValueError("V5 successful-record mean has the wrong denominator")
+            for metric, denominator in (
+                ("http_200_latency_mean_seconds", "http_200_latency_measured_count"),
+                ("http_attempt_latency_mean_seconds", "http_attempt_latency_measured_count"),
+                (
+                    "successful_record_elapsed_mean_seconds",
+                    "successful_record_elapsed_measured_count",
+                ),
+                ("all_record_elapsed_mean_seconds", "record_elapsed_measured_count"),
+                ("queue_to_completion_mean_seconds", "queue_to_completion_measured_count"),
+            ):
+                if (stage[metric] is None) != (stage[denominator] == 0):
+                    raise ValueError("V5 averages must have explicit measured denominators")
+                number(stage[metric])
+            if not number(stage["elapsed_seconds"], optional=False):
+                raise ValueError("V5 final arm duration must be positive")
+
+
+def render_v5(value: dict[str, Any]) -> dict[str, str]:
+    validate_v5(value)
+    final = value["results_final"]
+    labels = {"reactive": "Reactive round robin", "adaptive": "Quota-aware scheduling"}
+    stages = {s["arm"]: s for s in value["stages"]}
+    rows, timings, targets, quality_rows, warmups = [], [], [], [], []
+
+    def measured(stage: dict[str, Any], key: str) -> str:
+        return seconds(stage.get(key)) if final else "Not final"
+
+    for arm, label in labels.items():
+        stage = stages.get(arm, {})
+        rate = f"{stage['succeeded'] * 60 / stage['elapsed_seconds']:.2f}" if final else "&mdash;"
+        rows.append(
+            f'<tr><th scope="row">{label}</th><td>{count(stage.get("succeeded"))} / 520</td>'
+            f"<td>{count(stage.get('failed'))}</td><td>{count(stage.get('errors_429'))}</td>"
+            f"<td>{measured(stage, 'elapsed_seconds')}</td><td>{rate}</td>"
+            f"<td>{measured(stage, 'http_200_latency_mean_seconds')}</td>"
+            f"<td>{measured(stage, 'successful_record_elapsed_mean_seconds')}</td>"
+            f"<td>{money(stage.get('priced_usage_estimate_usd'))}</td></tr>"
+        )
+        for metric, denominator, description in (
+            (
+                "http_200_latency_mean_seconds",
+                "http_200_latency_measured_count",
+                "Mean successful HTTP call",
+            ),
+            (
+                "http_attempt_latency_mean_seconds",
+                "http_attempt_latency_measured_count",
+                "Mean all HTTP attempts, including errors",
+            ),
+            (
+                "successful_record_elapsed_mean_seconds",
+                "successful_record_elapsed_measured_count",
+                "Mean successful record processing",
+            ),
+            (
+                "all_record_elapsed_mean_seconds",
+                "record_elapsed_measured_count",
+                "Mean all record processing, including failures",
+            ),
+            (
+                "queue_to_completion_mean_seconds",
+                "queue_to_completion_measured_count",
+                "Mean enqueue-to-record-completion",
+            ),
+        ):
+            timings.append(
+                f'<tr><th scope="row">{label}</th><td>{description}</td>'
+                f"<td>{measured(stage, metric)}</td><td>{count(stage.get(denominator)) if final else '&mdash;'}</td></tr>"
+            )
+        for t in stage.get("target_metrics", []):
+            limits = (
+                "; ".join(
+                    f"{html.escape(str(a))} TPM / {html.escape(str(b))} RPM"
+                    for a, b in t["observed_rate_limits"]
+                )
+                or "Not returned"
+            )
+            targets.append(
+                f'<tr><th scope="row">{label}</th><td>{html.escape(t["alias"])}</td>'
+                f"<td>{count(t['allocated_tpm'])}</td><td>{count(t['http_attempts'])}</td>"
+                f"<td>{count(t['responses_200'])}</td><td>{count(t['errors_429'])}</td>"
+                f"<td>{seconds(t.get('http_200_latency_mean_seconds'))}</td><td>{limits}</td></tr>"
+            )
+        q = stage.get("quality") or {}
+        fields = q.get("field_accuracy", {})
+        quality_rows.append(
+            f'<tr><th scope="row">{label}</th><td>{count(q.get("evaluated_records"))} / 520</td>'
+            f"<td>{percent(fields.get('primary_route'))}</td><td>{percent(fields.get('confidence'))}</td>"
+            f"<td>{count(q.get('passed_records'))} / 520</td>"
+            f"<td>{html.escape((stage.get('gate') or {}).get('status', 'not_evaluated').replace('_', ' '))}</td></tr>"
+        )
+    for stage in value.get("warmups", []):
+        warmups.append(
+            f'<tr><th scope="row">{html.escape(stage["arm"])}</th><td>{ratio(stage)}</td>'
+            f"<td>{count(stage['http_attempts'])}</td><td>{count(stage['errors_429'])}</td>"
+            f"<td>{seconds(stage['elapsed_seconds'])}</td><td>{money(stage['priced_usage_estimate_usd'])}</td></tr>"
+        )
+    if final:
+        baseline, paced = stages["reactive"], stages["adaptive"]
+        story = (
+            f"<strong>Reactive:</strong> {count(baseline['succeeded'])}/520 validated in {seconds(baseline['elapsed_seconds'])}; "
+            f"mean successful HTTP call {seconds(baseline['http_200_latency_mean_seconds'])}. "
+            f"<strong>Quota-aware:</strong> {count(paced['succeeded'])}/520 validated in {seconds(paced['elapsed_seconds'])}; "
+            f"mean successful HTTP call {seconds(paced['http_200_latency_mean_seconds'])}."
+        )
+        if not value["benchmark_valid"]:
+            verdict = (
+                "Warm-up validation failed. This is not a valid complete five-target benchmark."
+            )
+        elif any(s["http_attempted_record_count"] < 500 for s in stages.values()):
+            verdict = "Fewer than 500 records reached inference in an arm; do not claim a full-size benchmark."
+        elif baseline["failed"] and not paced["failed"] and baseline["succeeded"]:
+            change = 100 * (paced["elapsed_seconds"] / baseline["elapsed_seconds"] - 1)
+            direction = "longer" if change >= 0 else "shorter"
+            verdict = (
+                f"Quota-aware processing completed all 520 records with {count(paced['errors_429'])} observed 429s. "
+                f"Mean successful-record processing was {seconds(baseline['successful_record_elapsed_mean_seconds'])} "
+                f"versus {seconds(paced['successful_record_elapsed_mean_seconds'])}; full arm time was "
+                f"{abs(change):.1f}% {direction}. The reactive arm failed records, so a complete-job speedup is not established."
+            )
+        elif baseline["failed"] or paced["failed"]:
+            verdict = "At least one arm failed records. Compare useful throughput and failures; a full-workload speedup is not established."
+        elif paced["elapsed_seconds"] < baseline["elapsed_seconds"]:
+            verdict = (
+                f"Quota-aware processing completed all 520 records with {baseline['elapsed_seconds'] / paced['elapsed_seconds']:.2f}x "
+                "the validated-record throughput in this paired run. This is not a sustained-capacity guarantee."
+            )
+        else:
+            verdict = (
+                f"Quota-aware processing took {paced['elapsed_seconds'] / baseline['elapsed_seconds']:.2f}x as long "
+                "for the complete workload. No speedup was observed in this paired run."
+            )
+        notice = f"<strong>Both benchmark arms are terminal.</strong><p>{story}</p><p>{verdict}</p>"
+        if value["router_reconciliation_required"]:
+            notice += "<p><strong>Uncertain paid outcomes remain. The experiment lease is held for investigation.</strong></p>"
+        status = tag("Paired run complete; inspect quality", "attention")
+    else:
+        story = "The Azure-hosted paired run is incomplete. Final average request times and throughput conclusions are withheld."
+        verdict = "No final V5 speedup claim is available."
+        notice = f"<strong>Benchmark in progress or awaiting reconciliation.</strong><p>{story}</p>"
+        status = tag("Results not final", "incomplete")
+    return {
+        "V5_FINAL": str(final).lower(),
+        "V5_STATUS": status,
+        "V5_NOTICE": notice,
+        "V5_STORY": story,
+        "V5_VERDICT": verdict,
+        "V5_ROWS": "".join(rows),
+        "V5_TIMING_ROWS": "".join(timings),
+        "V5_TARGET_ROWS": "".join(targets),
+        "V5_QUALITY_ROWS": "".join(quality_rows),
+        "V5_WARMUP_ROWS": "".join(warmups),
+        "V5_DATETIME": html.escape(value["observed_at"], quote=True),
+        "V5_OBSERVED": utc_label(value["observed_at"]),
+        "V5_COST": money(value.get("reported_model_usage_estimate_usd")),
+        "V5_WALL": seconds(value.get("end_to_end_elapsed_seconds")) if final else "Not final",
+        "V5_GUARD": money(value["specification"]["max_estimated_inference_usd"], 2),
+    }
+
+
 def compare_versions(
-    v1: dict[str, Any], v2: dict[str, Any], v3: dict[str, Any], v4: dict[str, Any]
+    v1: dict[str, Any],
+    v2: dict[str, Any],
+    v3: dict[str, Any],
+    v4: dict[str, Any],
+    v5: dict[str, Any],
 ) -> dict[str, str]:
     validate_v4(v4)
+    validate_v5(v5)
     experiments = {row["scenario"]: row for row in v1["experiments"]}
     baseline = [
         experiments["compact-sequential-120rpm"],
@@ -566,13 +802,13 @@ def compare_versions(
             raise ValueError("Historical comparison rows must contain three version values")
         return (
             f'<tr><th scope="row">{html.escape(label)}</th>'
-            + "".join(f"<td>{cell}</td>" for cell in [*cells, v4_cells[label]])
+            + "".join(f"<td>{cell}</td>" for cell in [*cells, v4_cells[label], v5_cells[label]])
             + "</tr>"
         )
 
     def group(title: str) -> str:
         return (
-            f'<tr class="group-row"><td colspan="5"><strong>{html.escape(title)}</strong></td></tr>'
+            f'<tr class="group-row"><td colspan="6"><strong>{html.escape(title)}</strong></td></tr>'
         )
 
     def stage_lines(rows: list[dict[str, Any]], field: str, formatter: Any) -> str:
@@ -807,6 +1043,67 @@ def compare_versions(
         "Main result": render_v4(v4)["V4_VERDICT"],
     }
     v4_cells["Exact GPT model"] = v4_cells["Exact GPT model / build"]
+    v5_stages = {stage["arm"]: stage for stage in v5["stages"]}
+
+    def v5_lines(field: str, formatter: Any) -> str:
+        return lines(
+            [
+                f"<strong>{label}:</strong> {formatter(v5_stages.get(arm, {}).get(field))}"
+                for arm, label in (("reactive", "Reactive"), ("adaptive", "Quota-aware"))
+            ]
+        )
+
+    v5_cells = {
+        "Application release": f'<a href="{REPO}/releases/tag/v0.5.0">0.5.0</a>',
+        "Exact GPT model / build": "<strong>GPT-5 mini</strong><br><code>2025-08-07</code>",
+        "Question being tested": "Does proactive admission and capacity-aware selection improve useful throughput versus reactive routing on the SAME five targets?",
+        "Prompt workload": "<strong>Identical complex-v2 Markdown/schema.</strong> No prompt reduction or relaxed gold checks.",
+        "Input volume": "Approximately 32.3K&ndash;32.6K estimated input tokens/record.",
+        "Dataset size": "<strong>520 records per arm</strong>; 40 repetitions of 13 scenario families, plus five separate warm-ups per arm.",
+        "Output contract": "The same eleven-field schema; a separate twelve-column application CSV includes the record ID.",
+        "Processing modes": "V4-style reactive policy versus quota-aware policy in a <strong>shared V5 durable queue</strong>; five workers in both.",
+        "Service allocation": "<strong>300K TPM / 300 RPM in BOTH arms</strong>: one 100K target plus four 50K targets. Historical V4 used 150K per arm.",
+        "Client pacing / retries": "Adaptive arm reserves request/token capacity at 95% headroom with bounded header feedback; reactive arm uses cooldowns. Four total attempts per record.",
+        "Generation settings": "2,048 output tokens; low reasoning; 90-second HTTP timeout.",
+        "Azure SKU / geography": "DataZoneStandard only; US Data Zone; South Central US resources.",
+        "Actual Azure Batch API": "<strong>Not used.</strong> Both are online calls; no Batch discount.",
+        "Execution host": "Azure Durable Functions / Scheduler; shared queue, process-local connection/manifest reuse, and private paid-intent checkpoints.",
+        "Evidence state": detail(
+            tag("Paired run complete" if v5["results_final"] else "Results not final", "attention"),
+            utc_label(v5["observed_at"]),
+        ),
+        "Full observed duration": v5_lines("elapsed_seconds", seconds)
+        if v5["results_final"]
+        else "Not final.",
+        "Schema-valid processing": v5_lines("succeeded", lambda n: count(n) + " / 520"),
+        "HTTP 429 attempts": v5_lines("errors_429", count),
+        "Semantic accuracy": v5_lines(
+            "quality", lambda q: percent((q or {}).get("field_accuracy", {}).get("primary_route"))
+        ),
+        "Semantic acceptance gate": v5_lines(
+            "gate",
+            lambda gate: html.escape((gate or {}).get("status", "not_evaluated").replace("_", " ")),
+        ),
+        "Reported model-usage estimate": v5_lines("priced_usage_estimate_usd", money),
+        "Cache and cost caveat": "Five warm-ups per arm and 65-second pauses, reported separately. Same pool; reactive runs first. Cache/traffic variability remains.",
+        "What demonstrably worked": "Inspect reconciliation, latency means with denominators, per-target behavior, and independent semantic gates.",
+        "Main takeaway": "<strong>Measure successful throughput and actual request completion, not just deployment count.</strong>",
+        "Main result": render_v5(v5)["V5_VERDICT"],
+    }
+    v5_cells["Exact GPT model"] = v5_cells["Exact GPT model / build"]
+    mean_fields = [
+        ("Average successful HTTP call", "http_200_latency_mean_seconds"),
+        ("Average successful record processing", "successful_record_elapsed_mean_seconds"),
+        ("Average all-record processing", "all_record_elapsed_mean_seconds"),
+        ("Average enqueue-to-record completion", "queue_to_completion_mean_seconds"),
+    ]
+    for label, field in mean_fields:
+        v4_cells[label] = (
+            v4_lines(field, lambda n: seconds(n) if n is not None else "Not recorded")
+            if v4["results_final"]
+            else "Not final."
+        )
+        v5_cells[label] = v5_lines(field, seconds) if v5["results_final"] else "Not final."
     config = [
         group("01 / Model identity and experiment design"),
         row(
@@ -911,6 +1208,21 @@ def compare_versions(
                 ),
             ],
         ),
+        *[
+            row(
+                label,
+                [
+                    stage_lines(
+                        baseline, field, lambda n: seconds(n) if n is not None else "Not recorded"
+                    ),
+                    stage_lines(
+                        v2_order, field, lambda n: seconds(n) if n is not None else "Not recorded"
+                    ),
+                    "Not recorded in this published evidence." if v3_final else "Not final.",
+                ],
+            )
+            for label, field in mean_fields
+        ],
         group("04 / Quality, costs, and the practical lesson"),
         row(
             "Semantic accuracy",
@@ -1001,7 +1313,8 @@ def compare_versions(
         f'<th scope="col"><span>V1 / BASELINE</span>GPT-5.4 mini<small>{html.escape(model1["model_version"])}</small></th>'
         f'<th scope="col"><span>V2 / COMPLEXITY</span>GPT-5.4 mini<small>{html.escape(model2["version"])}</small></th>'
         f'<th scope="col"><span>V3 / GROUPED REQUESTS</span>GPT-5 mini<small>{html.escape(model3["model_version"])}</small></th>'
-        '<th scope="col"><span>V4 / MATCHED QUOTA</span>GPT-5 mini<small>2025-08-07</small></th></tr>'
+        '<th scope="col"><span>V4 / MATCHED QUOTA</span>GPT-5 mini<small>2025-08-07</small></th>'
+        '<th scope="col"><span>V5 / SMART ROUTING</span>GPT-5 mini<small>2025-08-07</small></th></tr>'
     )
     seq, grouped = v3_order
     story = (
@@ -1063,6 +1376,11 @@ def resource_cards() -> str:
                     "Cloud-hosted single-versus-three deployment pilot",
                 ),
                 (
+                    "V5 quota-aware scheduling",
+                    f"{REPO}/releases/tag/v0.5.0",
+                    "Five deployments, 520-record arms, and average request timing",
+                ),
+                (
                     "Azure deployment tutorial",
                     f"{REPO}/blob/main/docs/azure-demo.md",
                     "Sign-in, availability, cost, deployment, and cleanup",
@@ -1106,6 +1424,21 @@ def resource_cards() -> str:
                     "V4 synthetic output examples",
                     "data/v4-output-samples.json",
                     "First three output records from each arm",
+                ),
+                (
+                    "V5 measured report",
+                    f"{REPO}/blob/main/docs/v5-results.md",
+                    "Matched policies, measured means, and explicit timing denominators",
+                ),
+                (
+                    "V5 aggregate evidence",
+                    "data/v5-results.json",
+                    "Benchmark and warm-up accounting kept separate",
+                ),
+                (
+                    "V5 synthetic outcomes",
+                    "data/v5-output-samples.json",
+                    "Actual examples, not generated substitutes for missing results",
                 ),
                 (
                     "Measurement definitions",
@@ -1183,6 +1516,16 @@ def resource_cards() -> str:
                     f"{REPO}/blob/main/scenarios/v4-matched-quota-1700.json",
                     "Provided but not executed; review costs before opting in",
                 ),
+                (
+                    "V5 operations guide",
+                    f"{REPO}/blob/main/docs/v5-adaptive.md",
+                    "Topology checks, scheduling, average definitions, and safe monitoring",
+                ),
+                (
+                    "V5 520-record scenario",
+                    f"{REPO}/blob/main/scenarios/v5-adaptive-520.json",
+                    "Two matched benchmark arms plus bounded warm-ups",
+                ),
             ],
         ),
         (
@@ -1232,7 +1575,7 @@ def resource_cards() -> str:
                 (
                     "Infrastructure templates",
                     f"{REPO}/tree/main/infra",
-                    "Main environment and additive v3/v4 model templates",
+                    "Main environment and scoped v3/v4/v5 model templates",
                 ),
                 (
                     "Reusable implementation prompt",
@@ -1352,17 +1695,23 @@ def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
         document = json.loads((root / "docs" / source).read_text(encoding="utf-8"))
         public_only(document, source)
         documents[target] = document
-    v1, v2, v3, v4 = (
+    v1, v2, v3, v4, v5 = (
         documents[name]
-        for name in ("v1-results.json", "v2-results.json", "v3-results.json", "v4-results.json")
+        for name in (
+            "v1-results.json",
+            "v2-results.json",
+            "v3-results.json",
+            "v4-results.json",
+            "v5-results.json",
+        )
     )
     if any(
         value["workload_profile"]["prompt_bundle_sha256"]
         != v2["workload_profile"]["prompt_bundle_sha256"]
-        for value in (v3, v4)
+        for value in (v3, v4, v5)
     ):
         raise ValueError(
-            "The page's unchanged-prompt comparison requires identical v2/v3/v4 bundle hashes"
+            "The page's unchanged-prompt comparison requires identical v2/v3/v4/v5 bundle hashes"
         )
     experiments = {row["scenario"]: row for row in v1["experiments"]}
     compact = [
@@ -1459,7 +1808,8 @@ def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
         "BUILD_TIME": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         **render_v3(v3),
         **render_v4(v4),
-        **compare_versions(v1, v2, v3, v4),
+        **render_v5(v5),
+        **compare_versions(v1, v2, v3, v4, v5),
     }
     layout = (root / "site" / "layout.html").read_text(encoding="utf-8")
     pages = {}

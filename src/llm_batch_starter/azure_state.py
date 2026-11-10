@@ -145,6 +145,7 @@ def create_cloud_run(
         config = settings.model_dump(
             exclude={
                 "endpoint",
+                "model_resource_id",
                 "auth_mode",
                 "managed_identity_client_id",
                 "storage_account",

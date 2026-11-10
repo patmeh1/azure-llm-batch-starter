@@ -38,6 +38,7 @@ jobs:
       - run: az bicep build --file infra/main.bicep --outfile /tmp/batch-template.json
       - run: az bicep build --file infra/v3-model.bicep --outfile /tmp/v3-model-template.json
       - run: az bicep build --file infra/v4-models.bicep --outfile /tmp/v4-models-template.json
+      - run: az bicep build --file infra/v5-models.bicep --outfile /tmp/v5-models-template.json
   browser:
     runs-on: ubuntu-latest
     steps:

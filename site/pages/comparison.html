@@ -1,7 +1,7 @@
       <section class="page-intro" aria-labelledby="comparison-title">
         <p class="eyebrow">The complete version-to-version comparison</p>
         <h1 id="comparison-title">What changed.<br><span>What the results mean.</span></h1>
-        <p class="lede">V1 and v2 use <strong>GPT-5.4 mini</strong>. V3 and v4 use <strong>GPT-5 mini</strong>. V4 adds a fresh one-versus-three deployment comparison with the same aggregate quota in both arms.</p>
+        <p class="lede">V1 and v2 use <strong>GPT-5.4 mini</strong>. V3, v4, and v5 use <strong>GPT-5 mini</strong>. V5 compares reactive and quota-aware policies on the same five deployments, with 520 records per arm and explicit average request timings.</p>
         <div class="callout"><strong>Same model is not the same test. Same prompt is not the same capacity.</strong><p>V1 &rarr; v2 changed prompt complexity, record count, output ceiling, and allocation. V2 &rarr; v3 kept the prompt but changed the model, allocation, pacing, count, and grouping. Do not attribute the differences to the GPT model alone.</p><p>Within v4, both arms hold model, prompt, records, five workers, retry logic, and total quota constant. This is a new cloud pilot, not a resumption or completed baseline for interrupted v3.</p></div>
         <nav class="section-links" aria-label="Comparison sections"><a href="#setup">Configuration</a><a href="#outcomes">Measured outcomes</a><a href="#interpretation">What works</a><a href="#sources">Evidence sources</a></nav>
       </section>
@@ -9,24 +9,27 @@
       <section id="setup" class="evidence" aria-labelledby="setup-title">
         <p class="kicker">First, compare like with like</p><h2 id="setup-title">Configuration and workload variables</h2>
         <p class="small">V1 includes a primary 100-record comparison and separately identified stress/scale experiments. The table does not merge them into one workload.</p>
+        <p class="small">Scroll horizontally to compare all five versions; row labels stay fixed on larger screens. V5 uses 300K TPM per arm, not V4's 150K. Its baseline is a fresh run on the same V5 pool.</p>
         <div class="table-shell" tabindex="0" role="region" aria-label="Configuration comparison across versions"><table class="comparison-table"><caption>Exact tested models, prompts, capacity, and execution settings.</caption><thead>@@COMPARISON_HEAD@@</thead><tbody>@@CONFIGURATION_ROWS@@</tbody></table></div>
       </section>
 
       <section id="outcomes" class="evidence" aria-labelledby="outcomes-title">
         <p class="kicker">Then, separate speed from correctness</p><h2 id="outcomes-title">Measured outcomes</h2>
-        <div class="callout warning"><strong>These columns are not a leaderboard.</strong><p>V1 timings cover 100 compact records. V2 timings cover 13 complex records. V3 targets 1,700 records per mode; its completion state is shown below. V4 tests 65 records per arm with cloud orchestration overhead included. Faster elapsed time on a smaller workload does not establish a faster model.</p></div>
+        <div class="callout warning"><strong>These columns are not a leaderboard.</strong><p>V1 timings cover 100 compact records; v2 covers 13 complex records; v3 targets 1,700 and retains its explicit evidence state; v4 covers 65 per arm; v5 covers 520 per arm on a fresh matched pool. Faster elapsed time on a smaller workload does not establish a faster model.</p><p><strong>Averages are measured, not inferred.</strong> Missing historical means say &ldquo;Not recorded.&rdquo; A p50 is not a mean, and job time divided by record count is throughput-related, not average request latency. V5 reports successful HTTP, successful/all record processing, and backlog-inclusive completion separately.</p></div>
         <div class="table-shell" tabindex="0" role="region" aria-label="Outcome comparison across versions"><table class="comparison-table"><caption>Completed results are distinct from timestamped partial observations. Costs are reported-usage estimates, not invoices.</caption><thead>@@COMPARISON_HEAD@@</thead><tbody>@@OUTCOME_ROWS@@</tbody></table></div>
         <p class="small">V3 evidence checked <time datetime="@@V3_DATETIME@@">@@V3_OBSERVED@@</time>. @@V3_FRESHNESS@@</p>
         <p class="small">V4 evidence exported <time datetime="@@V4_DATETIME@@">@@V4_OBSERVED@@</time>. Its full 1,700-record scenario is included in the repository but was not executed.</p>
+        <p class="small">V5 evidence exported <time datetime="@@V5_DATETIME@@">@@V5_OBSERVED@@</time>. <a href="v5.html#v5-latency">Read the average-latency definitions and denominators.</a></p>
       </section>
 
       <section id="interpretation" class="evidence" aria-labelledby="interpretation-title">
-        <p class="kicker">The answer to &ldquo;what works?&rdquo;</p><h2 id="interpretation-title">Four distinct lessons, not one winning model.</h2>
+        <p class="kicker">The answer to &ldquo;what works?&rdquo;</p><h2 id="interpretation-title">Five distinct lessons, not one winning model.</h2>
         <div class="grid-two">
           <article class="card"><span class="verdict">SUPPORTED BY V1</span><h3>Fix capacity and pacing first.</h3><p>Parallel requests improved compact-work throughput when the client cap allowed it. A higher service allocation admitted all six large requests in the matched burst test.</p><p class="small">This does not prove a sustained rate or zero future throttling.</p><a class="card-link" href="v1.html">See capacity evidence &rarr;</a></article>
           <article class="card"><span class="verdict">EXPOSED BY V2</span><h3>Treat semantic correctness as its own gate.</h3><p>GPT-5.4 mini processed every complex record, but all modes failed quality requirements. More capacity does not repair incorrectly interpreted instructions.</p><p class="small">Improve and evaluate the task independently of the transport.</p><a class="card-link" href="v2.html">See quality evidence &rarr;</a></article>
           <article class="card"><span class="verdict">V3 &middot; RESPECT THE EVIDENCE STATE</span><h3>Do not promise a fivefold speedup.</h3><p>Five client groups still use one GPT-5 mini allocation. @@V3_CONCLUSION@@</p><p class="small">Partial and terminal observations must not be mixed.</p><a class="card-link" href="v3.html">Inspect the current evidence &rarr;</a></article>
           <article class="card"><span class="verdict">V4 &middot; TEST THE SAME TOTAL QUOTA</span><h3>More deployment names do not add quota.</h3><p>@@V4_VERDICT@@</p><p class="small">Read per-target 429s, failures, and quality. One pilot cannot identify internal scale-up state or guarantee future throughput.</p><a class="card-link" href="v4.html">Inspect both pilot arms &rarr;</a></article>
+          <article class="card"><span class="verdict">V5 &middot; REQUEST TIME IS NOT JOB TIME / COUNT</span><h3>Compare the controller on matched capacity.</h3><p>@@V5_VERDICT@@</p><p class="small">Read the successful HTTP average, record-time average, backlog-inclusive lifetime, and failures together.</p><a class="card-link" href="v5.html">Inspect the 520-record comparison &rarr;</a></article>
         </div>
       </section>
 
@@ -35,4 +38,5 @@
         <article class="card"><h3>V2: complex task</h3><p>Per-field accuracy, confidence compliance, cache usage, and failures.</p><a href="data/v2-results.json" download>Download v2 evidence JSON</a><br><a class="card-link" href="@@REPO@@/blob/main/docs/complex-v2-validation.md">Read the original report &nearr;</a></article>
         <article class="card"><h3>V3: GPT-5 mini</h3><p>Snapshot time, completed/pending counts, and explicit final-result flag.</p><a href="data/v3-results.json" download>Download the v3 snapshot</a><br><a class="card-link" href="@@REPO@@/blob/main/docs/v3-results.md">Read the status report &nearr;</a></article>
         <article class="card"><h3>V4: matched quota</h3><p>Single-versus-pool timing, per-deployment limits, retry observations, and semantic quality.</p><a href="data/v4-results.json" download>Download v4 evidence JSON</a><br><a class="card-link" href="@@REPO@@/blob/main/docs/v4-results.md">Read the pilot report &nearr;</a></article>
+        <article class="card"><h3>V5: average request time</h3><p>Two 520-record arms, five targets, measured means, timing counts, warm-ups, and independent quality gates.</p><a href="data/v5-results.json" download>Download v5 evidence JSON</a><br><a class="card-link" href="@@REPO@@/blob/main/docs/v5-results.md">Read the paired-run report &nearr;</a></article>
       </div></section>

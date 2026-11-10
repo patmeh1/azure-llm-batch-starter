@@ -7,12 +7,16 @@
           <tr><th scope="row">V2 versus v3</th><td>Complex prompt/schema bundle, low reasoning effort, output ceiling</td><td>Model, quota, request pacing, dataset size, and grouping differ. Not a controlled GPT-5.4 mini versus GPT-5 mini ranking.</td></tr>
           <tr><th scope="row">Arms within v4</th><td>GPT-5 mini build, prompt/schema, 65 records, five workers, routing/retry logic, region, 150K TPM / 150 RPM total</td><td>One 150K target versus three 50K targets. Time order, cache, per-target headroom, and service conditions can differ; one pilot cannot establish internal scaling behavior.</td></tr>
           <tr><th scope="row">V3 versus v4</th><td>GPT-5 mini build and complex-v2 prompt/schema</td><td>V3 is interrupted. V4 is a new 65-record-per-arm cloud experiment with four-attempt routing, not a completion or speedup claim for the 1,700-record local run.</td></tr>
+          <tr><th scope="row">Policies within v5</th><td>GPT-5 mini build, prompt/schema, 520 records, five-target 300K pool, worker ceiling, retry limits, shared queue, client/manifest reuse, and warm-up method</td><td>Compare reactive and quota-aware admission/selection. Different time order and cache/service conditions remain limitations of a single paired run.</td></tr>
+          <tr><th scope="row">V4 versus v5</th><td>GPT-5 mini build and complex-v2 prompt/schema</td><td>Count, active quota, topology, queue design, and instrumentation change. V5's 520-record result is not directly interchangeable with V4's 65-record timing.</td></tr>
         </tbody></table></div>
         <h2 style="margin-top:2rem">What the evidence does not promise.</h2>
         <div class="limitations"><ul>
           <li>These are synthetic reference experiments, not production benchmarks, a performance SLA, or a zero-429 guarantee.</li>
           <li>Compare matched inputs within a test. Different record counts, models, allocations, output budgets, cache states, and prompts are not directly interchangeable.</li>
           <li>Full wall time includes waiting and failures. Do not infer per-record Batch latency by dividing total turnaround by record count.</li>
+          <li>A mean is not a p50. V5's average successful HTTP duration, successful/all record processing, and enqueue-to-completion have separate measured denominators. Historical missing means remain &ldquo;Not recorded.&rdquo;</li>
+          <li>V5 record processing starts at first readiness at the queue head and ends when the validated outcome is ready for its final metadata write. Its backlog-inclusive lifetime starts at arm enqueue. Conditional successful-only means must be read with failure counts.</li>
           <li>Schema-valid output is not semantic accuracy. Exact-match synthetic grading has its own limitations and does not replace evaluation on an authorized real workload.</li>
           <li>Usage estimates apply configured token rates to reported usage. They are not invoices and exclude infrastructure, missing usage, taxes, and billing adjustments.</li>
           <li>US Data Zone inference is broader than a single resource region. Verify current model/SKU availability, quota, network access, and residency requirements before deployment.</li>

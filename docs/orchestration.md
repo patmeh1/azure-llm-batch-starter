@@ -77,9 +77,9 @@ Ambiguous submissions retain their reservation until an operator establishes
 the remote outcome; cancellation does not make an unknown paid submission safe
 to repeat.
 
-The host and starters explicitly use orchestration version `4.0`.
-The separately named v4 online routing workflows are new; prior workflow
-sequences remain compatible with versions `1.0`, `2.0`, and `3.0`.
+The host and starters explicitly use orchestration version `5.0`.
+The separately named V5 shared-queue workflows are new; prior workflow
+sequences remain compatible with versions `1.0`, `2.0`, `3.0`, and `4.0`.
 Sub-orchestrations inherit the root version. `CurrentOrOlder` matching with
 `Reject` prevents an older worker from accepting newer-version work during
 rolling deployment. The original unversioned activity sequence is retained
@@ -134,3 +134,23 @@ roots. A model's semantic failure is evidence, not permission to create
 another paid Batch job. See [v4 operations](v4-multi-deployment.md) for
 monitoring, cancellation, private artifacts, and the larger unexecuted
 scenario.
+
+## V5 admission and completion clocks
+
+V5 shares the existing global online experiment lease and uses a separate
+per-stage admission entity for its queue, idempotent grants/acknowledgements,
+request/token budgets, cooldowns, and immutable deadline. Root and child
+histories remain model-payload-free. Non-paid metadata steps use bounded
+activity retries; inference keeps atomic saved intent/response reconciliation.
+
+Each arm has five warm-ups followed by a 65-second pause before the benchmark.
+A failed warm-up requests cancellation rather than silently testing fewer
+working endpoints. Warm-up counts/costs are separate from the 520 main
+records. The reactive and adaptive arms use the same caching and shared queue.
+
+The original stage-start timestamp controls admission, including after a
+metadata activity retry. A saved paid response reconciles even after deadline
+or cancellation; an uncertain intent remains explicit. Record timing starts
+at first readiness at the queue head, while backlog-inclusive lifetime
+starts at arm enqueue. HTTP attempt duration is recorded separately.
+See [the V5 guide](v5-adaptive.md) for precise definitions and safe monitoring.

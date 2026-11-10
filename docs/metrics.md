@@ -7,9 +7,13 @@
 | End-to-end elapsed seconds | The longer of observed application and current orchestration wall time; recovery does not erase prior waiting/work |
 | Completed records/minute | Successfully validated records / full wall time |
 | HTTP attempt duration | Client-observed call duration, not pure GPU inference time |
+| Mean HTTP 200 duration | Arithmetic mean of measured 200-response attempt durations, with its sample count; may include schema-invalid responses |
+| Mean all-HTTP duration | Mean across every measured HTTP attempt, including errors; fast 429s can lower it without improving useful work |
 | Successful-record elapsed mean | Complete record elapsed, including retries, for successful records with measured duration |
 | All-record elapsed mean | Complete record elapsed across successful and failed records with measured duration; measurement count is reported |
 | Record elapsed time | Admission waits, attempts, retries, and validation |
+| V5 backlog wait | Arm enqueue to the record's first readiness at the shared queue head |
+| V5 queue-to-completion | Arm enqueue to each validated final outcome; includes backlog as well as processing |
 | Retry waiting | Actual recorded backoff sleep, not inferred from response latency |
 | Stage aggregates | Time accumulated for that stage; parallel stages may overlap |
 | Batch duration | Observed submission-to-terminal/collection interval |
@@ -35,6 +39,16 @@
   remain missing rather than zero.
 - Batch queue/turnaround time is not per-record model inference latency.
 - Do not divide Batch wall time by records and label it inference latency.
+- Do not divide any parallel job's wall time by record count and label it
+  average request latency. A median (p50) is not an arithmetic mean either.
+- V5 records first readiness at the queue head separately from arm enqueue.
+  Its processing duration includes admission/retries through validation and
+  response persistence, ending immediately before the final metadata write.
+  Queue-to-completion includes the backlog before that first readiness.
+- V5 warm-up metrics/costs are separate from the 520 main records in each arm.
+  Whole-workflow elapsed time includes warm-ups, pauses, and preparation.
+- Published historical evidence may lack means. Such cells remain
+  `Not recorded`; neither p50 nor job elapsed/count is substituted.
 - Azure's enforcement windows and competing traffic are not reproduced exactly
   by client minute buckets. Pair measurements with returned rate-limit headers.
 - Local tokenization estimates are not guaranteed to match service admission or

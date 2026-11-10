@@ -114,3 +114,30 @@ router waits, token usage, unchanged semantic gates, and inspected synthetic
 examples. Update the comparison site with a separate v4 page and fourth
 column, while retaining v3's interrupted status. Deployment count alone
 does not add quota; HTTP 429 alone does not reveal internal scale-up state.
+
+## V5 extension
+
+Retain the model, complex prompts, schema, and strict semantic gates. Build
+quota-aware admission and capacity-sensitive routing over a durable shared
+queue. Compare it with a fresh reactive policy on the SAME five deployments
+and 520 records per arm; do not claim a controller speedup from comparing
+different active quotas or smaller historical datasets.
+
+Use the approved 100K plus four 50K allocation, keep a five-worker ceiling,
+disable SDK retries, and preserve four total attempts, original deadlines,
+atomic paid intents/responses, cancellation, and explicit unknown outcomes.
+Verify real model/version/SKU/allocation and compatible content policies
+before inference. Preserve existing policies and identities; do not reset
+them through omitted template properties.
+
+Use common HTTP/immutable-manifest reuse and common warm-up methodology in
+both arms. Bound model-usage estimates including warm-ups, and separate
+those estimates from actual reported usage and Azure infrastructure charges.
+Keep durable payloads below service limits without placing raw documents
+in orchestration history.
+
+Measure actual successful-HTTP means and successful/all-record completion
+means with denominators, plus backlog-inclusive lifetime, p50/p95, whole-job
+time, 429s, failures, and quality. Do not substitute a median or job time/count
+for average request latency. Publish a distinct V5 page and fifth comparison
+column; retain missing historical means as unavailable.

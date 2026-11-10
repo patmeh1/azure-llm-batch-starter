@@ -1,6 +1,7 @@
       <section id="v4" class="evidence" aria-labelledby="v4-title" data-results-final="@@V4_FINAL@@">
         <div class="evidence-heading"><div><p class="version">CHAPTER 4 &middot; GPT-5 MINI &middot; 2025-08-07</p><h1 id="v4-title">Three deployments.<br>The same total quota.</h1></div>@@V4_STATUS@@</div>
         <p class="evidence-context">US DataZoneStandard &middot; unchanged complex-v2 Markdown &middot; 65 records per arm &middot; five workers in Azure &middot; 150K TPM / 150 RPM in each arm.</p>
+        <p class="small">Historical measured setup. The later V5 upgrade reallocated the live control; reproduce V4 only after verifying its original allocations. Current starters detect configuration drift.</p>
         <div class="chapter-summary">
           <div><span class="verdict">CONTROL / ONE TARGET</span><h3>1 &times; 150K TPM</h3><p>All five workers route to one GPT-5 mini deployment. A 429 puts that target into a shared cooldown.</p></div>
           <div><span class="verdict">POOL / THREE TARGETS</span><h3>3 &times; 50K TPM</h3><p>The same five workers use round robin among eligible deployments. A throttled target cools down while others remain eligible.</p></div>
@@ -35,9 +36,9 @@
         <section id="v4-reproduce" class="evidence" aria-labelledby="v4-reproduce-title">
           <h2 id="v4-reproduce-title">Reproduce the pilot before scaling the workload</h2>
           <p>The step-by-step guide covers deploying the three model children, verifying all four allocations, deploying the worker, previewing costs, starting once, monitoring, cancellation, and exporting results. It requires your own authorized Azure environment.</p>
-          <pre><code>llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v3-config.json
+          <pre><code>llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v4-config.json
 # Add --yes only after reviewing the plan and approving charges.
-llm-batch v4-status YOUR_RUN_ID --config .azure\v3-config.json --wait</code></pre>
+llm-batch v4-status YOUR_RUN_ID --config .azure\v4-config.json --wait</code></pre>
           <div class="callout"><strong>The full 1,700-record scenario was not executed.</strong><p>It is available as a dry-run-first configuration. Review its larger cost and time guardrails before a separate approved execution. Do not treat this pilot as evidence for 1,700-record completion or extrapolate a linear speedup.</p></div>
           <div class="evidence-links"><a href="@@REPO@@/blob/main/docs/v4-multi-deployment.md">Step-by-step v4 guide &nearr;</a><a href="@@REPO@@/blob/main/docs/v4-results.md">Measured report and limitations &nearr;</a><a href="data/v4-results.json" download>Download v4 evidence JSON</a><a href="@@REPO@@/blob/main/scenarios/v4-matched-quota-1700.json">Full scenario, not executed &nearr;</a><a href="@@REPO@@/releases/tag/v0.4.0">V4 code and release &nearr;</a></div>
           <p class="small" style="margin-top:1.5rem">Single runs first and pool second after a 65-second pause. Cache warmth, time-varying demand, and per-deployment headroom can differ. This is one synthetic pilot, not a randomized repeated benchmark, production SLA, or internal capacity diagnosis. The interrupted v3 run remains separate.</p>

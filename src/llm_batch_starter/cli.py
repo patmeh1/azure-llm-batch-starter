@@ -300,6 +300,51 @@ def v4_run(
         access.close()
 
 
+@app.command("v5-config")
+def v5_config(
+    base_config: Path,
+    resource_id: Annotated[str, typer.Option("--resource-id")],
+    output: Path = Path("outputs/v5-config.json"),
+) -> None:
+    """Create private V5 configuration with the account resource ID for allocation validation."""
+    from .adaptive import adaptive_settings
+
+    settings, _ = adaptive_settings(load_settings(base_config, model_resource_id=resource_id))
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("x", encoding="utf-8") as stream:
+        stream.write(settings.model_dump_json(indent=2))
+    emit({"config": str(output), "note": "Private configuration only; no deployment or inference."})
+
+
+@app.command("v5-run")
+def v5_run(
+    scenario: Annotated[Path, typer.Option("--scenario")],
+    config: ConfigPath = None,
+    yes: bool = False,
+) -> None:
+    """Preview or start the five-target reactive-versus-quota-aware V5 experiment."""
+    from .adaptive import AdaptiveSpec, adaptive_plan
+
+    spec = AdaptiveSpec.model_validate_json(scenario.read_text(encoding="utf-8"))
+    settings = load_settings(config)
+    plan = adaptive_plan(spec, settings)
+    if not yes:
+        emit(plan)
+        return
+    emit(plan, err=True)
+    access = SchedulerAccess(settings)
+    try:
+        emit(
+            {
+                "run_id": access.start_adaptive(spec),
+                "status": "queued",
+                "note": "Monitor this same ID with v5-status. Execution continues in Azure.",
+            }
+        )
+    finally:
+        access.close()
+
+
 @app.command("v4-status")
 def v4_status(
     run_id: str,
@@ -309,19 +354,91 @@ def v4_status(
     output: Path = Path("outputs/v4"),
 ) -> None:
     """Monitor the existing Azure-hosted v4 experiment, saving an operational report."""
+    observe_pool(run_id, config, wait, timeout, output, "multi-deployment")
+
+
+@app.command("v5-status")
+def v5_status(
+    run_id: str,
+    config: ConfigPath = None,
+    wait: bool = False,
+    timeout: int = 1800,
+    output: Path = Path("outputs/v5"),
+) -> None:
+    """Monitor the same V5 root; observer exit never cancels or resubmits paid work."""
+    observe_pool(run_id, config, wait, timeout, output, "adaptive-pool")
+
+
+def observe_pool(
+    run_id: str,
+    config: ConfigPath,
+    wait: bool,
+    timeout: int,
+    output: Path,
+    expected_mode: str,
+) -> None:
     if not 1 <= timeout <= 86400:
         raise ValueError("Observer timeout must be 1..86400 seconds; it does not cancel Azure work")
-    access = SchedulerAccess(load_settings(config))
+    settings = load_settings(config)
+    access = SchedulerAccess(settings)
+    import grpc
+
+    client_open = True
+    read_retries = 0
     deadline = time.monotonic() + timeout
     directory = output / run_id
     valid_run_id(run_id)
     directory.mkdir(parents=True, exist_ok=True)
     try:
         while True:
-            run = access.get_run(run_id)
-            if run["mode"] != "multi-deployment":
-                raise ValueError("This is not a v4 multi-deployment experiment")
-            report = access.detail(run_id)
+            try:
+                run = access.get_run(run_id)
+                if run["mode"] != expected_mode:
+                    raise ValueError("This is not the selected online experiment type")
+                report = access.detail(run_id)
+            except grpc.RpcError as error:
+                code = error.code() if isinstance(error, grpc.Call) else None
+                if (
+                    code is None
+                    or not wait
+                    or read_retries >= 3
+                    or code
+                    not in {
+                        grpc.StatusCode.UNAVAILABLE,
+                        grpc.StatusCode.DEADLINE_EXCEEDED,
+                    }
+                ):
+                    raise
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    emit(
+                        {
+                            "run_id": run_id,
+                            "observer_status": "timeout",
+                            "note": "Cloud outcome not read; no cancellation or resubmission.",
+                        },
+                        err=True,
+                    )
+                    raise typer.Exit(2) from error
+                read_retries += 1
+                delay = min(5 * 2 ** (read_retries - 1), remaining)
+                emit(
+                    {
+                        "run_id": run_id,
+                        "observer_status": "reconnecting",
+                        "reason": code.name,
+                        "retry": read_retries,
+                        "delay_seconds": delay,
+                    },
+                    err=True,
+                )
+                access.close()
+                client_open = False
+                time.sleep(delay)
+                access = SchedulerAccess(settings)
+                client_open = True
+                continue
+            read_retries = 0
             (directory / "summary.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
             emit(
                 {
@@ -339,7 +456,8 @@ def v4_status(
                 raise typer.Exit(2)
             time.sleep(min(30, max(0, deadline - time.monotonic())))
     finally:
-        access.close()
+        if client_open:
+            access.close()
 
 
 @app.command("v4-export")
@@ -348,6 +466,14 @@ def v4_export(report: Path, output: Path) -> None:
     from .multi_deployment import export_multi
 
     emit(export_multi(report, output))
+
+
+@app.command("v5-export")
+def v5_export(report: Path, output: Path) -> None:
+    """Export reviewed V5 aggregate measurements and bounded synthetic output examples."""
+    from .adaptive import export_adaptive
+
+    emit(export_adaptive(report, output))
 
 
 @app.command("v3-config")

@@ -14,6 +14,11 @@ Read the [measured pilot report](v4-results.md) and
 The larger [1,700-record scenario](../scenarios/v4-matched-quota-1700.json)
 is provided but **was not executed**.
 
+The later V5 upgrade changes the demo's live control allocation to 100K and
+adds a fifth target. The V4 numbers remain historical evidence, not a live
+configuration claim. Reproduction requires the original 150K control and
+three 50K pool targets in an appropriately allocated environment.
+
 ## What stays the same, and what changes
 
 | Variable | Single arm | Pool arm |
@@ -72,6 +77,7 @@ Get the approved names from your environment, not this public report:
 ```powershell
 $rg = azd env get-value AZURE_RESOURCE_GROUP
 $account = azd env get-value AZURE_OPENAI_ACCOUNT
+$resourceId = az cognitiveservices account show --resource-group $rg --name $account --query id --output tsv
 az cognitiveservices account list-models --resource-group $rg --name $account --output json
 az cognitiveservices usage list --location southcentralus --output json
 az cognitiveservices account deployment list --resource-group $rg --name $account --output json
@@ -142,8 +148,21 @@ That command only creates a private configuration; it does not deploy or run
 inference. The v4 experiment pins its model, routing map, reasoning, timeout,
 and generation settings regardless of the older base model defaults.
 
+With application version 0.5.0 or later, live online experiments also require
+the account resource ID for actual topology validation. Use the configuration
+helper to create a separate private file, without altering a checkpointed v3
+configuration:
+
 ```powershell
-llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v3-config.json
+llm-batch v5-config .azure\demo-config.json --resource-id $resourceId --output .azure\v4-config.json
+```
+
+The helper only writes configuration; `v4-run` still selects the V4 experiment.
+Use `--config .azure\v4-config.json` for the live commands below. If the
+allocation has been changed for V5, preflight refuses a misleading V4 replay.
+
+```powershell
+llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v4-config.json
 ```
 
 Without `--yes`, this is a dry run. The published pilot preview estimated
@@ -163,8 +182,8 @@ not a claim about the service's exact admission algorithm.
 After reviewing the plan and approving charges:
 
 ```powershell
-llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v3-config.json --yes
-llm-batch v4-status YOUR_RUN_ID --config .azure\v3-config.json --wait --timeout 7200
+llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v4-config.json --yes
+llm-batch v4-status YOUR_RUN_ID --config .azure\v4-config.json --wait --timeout 7200
 ```
 
 Save the returned root ID. The workflow runs in Azure and continues if the
@@ -181,7 +200,7 @@ records, including failures; it is not a success count.
 The local dashboard can display the same authenticated scheduler metadata:
 
 ```powershell
-llm-batch dashboard --config .azure\v3-config.json
+llm-batch dashboard --config .azure\v4-config.json
 ```
 
 Select the scheduler source, not local fixture history. It separates arm
@@ -209,7 +228,7 @@ outcomes, per-target responses/429s, summed routing wait, and semantic gates.
 Request cancellation with:
 
 ```powershell
-llm-batch azure-cancel YOUR_RUN_ID --config .azure\v3-config.json --yes
+llm-batch azure-cancel YOUR_RUN_ID --config .azure\v4-config.json --yes
 ```
 
 Cancellation stops new attempts when workers next check the saved flag.
@@ -260,7 +279,7 @@ sizes or use the interrupted v3 run as a completed baseline.
 ## 8. Preview the larger scenario; do not launch by accident
 
 ```powershell
-llm-batch v4-run --scenario scenarios\v4-matched-quota-1700.json --config .azure\v3-config.json
+llm-batch v4-run --scenario scenarios\v4-matched-quota-1700.json --config .azure\v4-config.json
 ```
 
 This provides 1,700 records per arm, five streams of 340, a 12-hour admission

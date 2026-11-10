@@ -158,8 +158,9 @@ def render_dashboard() -> None:
             )
             selected = st.selectbox("Inspect a run", frame["run_id"].tolist())
             detail = load_batch_details(store, selected)
+            version = "V5" if detail["mode"] == "adaptive-pool" else "V4"
             if detail.get("multi_deployment_progress") or detail.get("worker_progress"):
-                st.subheader("V4 durable execution progress")
+                st.subheader(f"{version} durable execution progress")
                 st.json(
                     {
                         "stages": detail.get("multi_deployment_progress"),
@@ -170,7 +171,7 @@ def render_dashboard() -> None:
                     "Live scheduler state; processed worker records can include failures. Final metrics require reconciliation."
                 )
             if detail.get("multi_deployment_stages"):
-                st.subheader("V4 matched-quota comparison")
+                st.subheader(f"{version} matched-quota comparison")
                 rows = []
                 for stage in detail["multi_deployment_stages"]:
                     rows.append(
@@ -182,6 +183,14 @@ def render_dashboard() -> None:
                             "failed": stage["failed"],
                             "http_429_attempts": stage["errors_429"],
                             "router_wait_seconds": stage["router_wait_seconds"],
+                            "mean_http_200_seconds": stage.get("http_200_latency_mean_seconds"),
+                            "mean_successful_record_seconds": stage.get(
+                                "successful_record_elapsed_mean_seconds"
+                            ),
+                            "mean_all_record_seconds": stage.get("all_record_elapsed_mean_seconds"),
+                            "mean_queue_to_completion_seconds": stage.get(
+                                "queue_to_completion_mean_seconds"
+                            ),
                             "primary_accuracy": (stage.get("quality") or {})
                             .get("field_accuracy", {})
                             .get("primary_route"),
@@ -190,7 +199,12 @@ def render_dashboard() -> None:
                     )
                 st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
                 st.caption(
-                    "One 150K deployment versus three 50K deployments: same 150K aggregate per arm, five workers, online inference in Azure."
+                    "Same five deployments and 300K TPM per arm: reactive versus quota-aware scheduling."
+                    if version == "V5"
+                    else "One 150K deployment versus three 50K deployments: same 150K aggregate per arm, five workers, online inference in Azure."
+                )
+                st.caption(
+                    "HTTP means measure successful API attempts. Record means include admission and retries after a record becomes ready; queue-to-completion also includes backlog waiting. None is job duration divided by count."
                 )
                 for stage in detail["multi_deployment_stages"]:
                     st.write(
@@ -286,7 +300,7 @@ def render_dashboard() -> None:
             st.write({"Reported-usage cost estimate (USD)": detail["priced_usage_estimate_usd"]})
             st.subheader(
                 "Batch partitions"
-                if detail["mode"] != "multi-deployment"
+                if detail["mode"] not in {"multi-deployment", "adaptive-pool"}
                 else "Execution artifacts"
             )
             if detail["mode"] == "client-batch":

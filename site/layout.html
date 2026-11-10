@@ -70,7 +70,7 @@ html[data-theme="dark"] {
   --cp-highlight: rgba(253, 142, 161, 0.12);
 }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; scroll-padding-top: 10rem; }
+    html { scroll-behavior: smooth; scroll-padding-top: 12rem; }
     body { margin: 0; background: var(--cp-bg); color: var(--cp-text); font: 1rem/1.65 "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; }
     a { color: var(--cp-link); text-decoration-thickness: 1px; text-underline-offset: .2em; }
     a:hover { text-decoration-thickness: 2px; }
@@ -167,9 +167,10 @@ html[data-theme="dark"] {
     thead th { background: var(--cp-surface-soft); color: var(--cp-text-muted); font-size: .75rem; font-weight: 650; letter-spacing: .03em; }
     tbody th { font-weight: 600; min-width: 10rem; }
     tbody tr:last-child > * { border-bottom: 0; }
-    .comparison-table { min-width: 1140px; table-layout: fixed; }
-    .comparison-table thead th { width: 21%; font-size: 1rem; color: var(--cp-text); vertical-align: top; }
-    .comparison-table thead th:first-child { width: 16%; }
+    .comparison-table { min-width: 1440px; table-layout: fixed; }
+    .comparison-table thead th { width: 17%; font-size: 1rem; color: var(--cp-text); vertical-align: top; }
+    .comparison-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--cp-surface); }
+    .comparison-table thead th:first-child { width: 15%; z-index: 2; background: var(--cp-surface-soft); }
     .comparison-table thead span { display: block; font-size: .7rem; font-weight: 700; color: var(--cp-accent); letter-spacing: .06em; margin-bottom: .35rem; }
     .comparison-table thead small { display: block; font-size: .8rem; color: var(--cp-text-soft); margin-top: .25rem; font-weight: 500; }
     .comparison-table td { vertical-align: top; }
@@ -234,6 +235,8 @@ html[data-theme="dark"] {
       .finding > .button { grid-column: 2; justify-self: start; }
     }
     @media (max-width: 640px) {
+      html { scroll-padding-top: 1rem; }
+      .comparison-table th:first-child { position: static; }
       .wrap { padding-inline: 1rem; }
       .topbar { flex-wrap: wrap; gap: .75rem; padding-block: .75rem; }
       .site-header { position: static; }
@@ -312,7 +315,7 @@ html[data-theme="dark"] {
       });
       updateThemeLabel();
       preserveThemeInLinks();
-      const oldSections = { comparisons: 'comparison.html', v1: 'v1.html', v2: 'v2.html', v3: 'v3.html', v4: 'v4.html', approach: 'approach.html', resources: 'resources.html', start: 'resources.html#start', methodology: 'methodology.html' };
+      const oldSections = { comparisons: 'comparison.html', v1: 'v1.html', v2: 'v2.html', v3: 'v3.html', v4: 'v4.html', v5: 'v5.html', approach: 'approach.html', resources: 'resources.html', start: 'resources.html#start', methodology: 'methodology.html' };
       if (document.body.dataset.page === 'index.html' && Object.hasOwn(oldSections, location.hash.slice(1))) {
         const target = new URL(oldSections[location.hash.slice(1)], location.href);
         target.search = location.search;

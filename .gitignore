@@ -38,4 +38,5 @@ test-results/
 playwright-report/
 infra/v3-model.json
 infra/v4-models.json
+infra/v5-models.json
 _site/

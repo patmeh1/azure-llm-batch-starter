@@ -7,15 +7,23 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from .adaptive import (
+    ADAPTIVE_STAGES,
+    ADAPTIVE_TARGETS,
+    AdaptiveSpec,
+    adaptive_plan,
+    adaptive_settings,
+)
 from .azure_state import valid_run_id
 from .complex_workload import configure, generate_complex
 from .config import DEFAULT_PROMPT, DEFAULT_SCHEMA, WORKFLOW_VERSION, Settings, credential
-from .multi_deployment import ARMS, MultiDeploymentSpec, plan_multi, v4_settings
+from .multi_deployment import ARMS, CONTROL, POOL, MultiDeploymentSpec, plan_multi, v4_settings
 from .prepare import estimate_cost
 from .reporting import summarize_documents
 from .state import State
 from .synthetic import generate_dataset
 from .telemetry import elapsed_between, utc_now
+from .topology import verify_topology
 
 
 def scheduler_timestamp(value: datetime) -> str:
@@ -109,6 +117,7 @@ class SchedulerAccess:
             "retry_workflow",
             "recovery_workflow",
             "multi_deployment_workflow",
+            "adaptive_workflow",
         }:
             raise ValueError("This instance is not a supported application root")
         payload = json.loads(state.serialized_input or "{}")
@@ -132,7 +141,13 @@ class SchedulerAccess:
             )
         run = {
             "id": run_id,
-            "mode": "multi-deployment" if state.name == "multi_deployment_workflow" else "batch",
+            "mode": (
+                "adaptive-pool"
+                if state.name == "adaptive_workflow"
+                else "multi-deployment"
+                if state.name == "multi_deployment_workflow"
+                else "batch"
+            ),
             "source": "live-scheduler",
             "status": status,
             "runtime_status": runtime,
@@ -171,6 +186,7 @@ class SchedulerAccess:
                 "retry_workflow",
                 "recovery_workflow",
                 "multi_deployment_workflow",
+                "adaptive_workflow",
             }:
                 runs.append(self.get_run(instance_id))
         return runs
@@ -178,6 +194,7 @@ class SchedulerAccess:
     def start_multi(self, spec: MultiDeploymentSpec) -> str:
         plan = plan_multi(spec, self.settings)
         settings, profile = v4_settings(self.settings)
+        verify_topology(settings, {**CONTROL, **POOL})
         run_id = uuid.uuid4().hex
         self.registry.save_run(
             {
@@ -204,6 +221,40 @@ class SchedulerAccess:
             instance_id=run_id,
             version=WORKFLOW_VERSION,
             tags={"application": "llm-batch-starter", "experiment": "v4-matched-quota"},
+        )
+        return run_id
+
+    def start_adaptive(self, spec: AdaptiveSpec) -> str:
+        plan = adaptive_plan(spec, self.settings)
+        settings, profile = adaptive_settings(self.settings)
+        verify_topology(settings, ADAPTIVE_TARGETS)
+        run_id = uuid.uuid4().hex
+        self.registry.save_run(
+            {
+                "id": run_id,
+                "mode": "adaptive-pool",
+                "status": "submission_pending",
+                "source": "live-scheduler",
+                "record_count": spec.count * 2,
+                "started_at": utc_now(),
+                "ended_at": None,
+                "metadata": plan["generation"],
+                "workload_profile": profile,
+            }
+        )
+        self.client.schedule_new_orchestration(
+            "adaptive_workflow",
+            input={
+                "count": spec.count * 2,
+                "specification": spec.model_dump(),
+                "workload_profile": profile,
+                "generation": plan["generation"],
+                "expected_model": [settings.model_name, settings.model_version],
+                "model_resource_id": settings.model_resource_id,
+            },
+            instance_id=run_id,
+            version=WORKFLOW_VERSION,
+            tags={"application": "llm-batch-starter", "experiment": "v5-adaptive"},
         )
         return run_id
 
@@ -278,7 +329,7 @@ class SchedulerAccess:
         jobs = []
         processor = (
             state
-            if state.name in {"recovery_workflow", "multi_deployment_workflow"}
+            if state.name in {"recovery_workflow", "multi_deployment_workflow", "adaptive_workflow"}
             else self.client.get_orchestration_state(f"{run_id}-processor")
         )
         if processor and processor.serialized_custom_status:
@@ -306,16 +357,23 @@ class SchedulerAccess:
             "batch_record_429",
             "control_plane_429",
             "retry_wait_seconds",
+            "router_wait_seconds",
+            "http_attempted_record_count",
+            "http_200_latency_measured_count",
+            "http_attempt_latency_measured_count",
+            "record_elapsed_measured_count",
+            "successful_record_elapsed_measured_count",
+            "queue_to_completion_measured_count",
         ):
             report[key] = None
         report["metrics_availability"] = "awaiting_final_reconciliation"
         report["orchestration_elapsed_seconds"] = orchestration_elapsed
-        if state.name == "multi_deployment_workflow":
+        if state.name in {"multi_deployment_workflow", "adaptive_workflow"}:
             payload = json.loads(state.serialized_input or "{}")
             report["specification"] = payload["specification"]
             report["multi_deployment_progress"] = json.loads(state.serialized_custom_status or "{}")
             worker_progress = []
-            for arm in ARMS:
+            for arm in ADAPTIVE_STAGES if state.name == "adaptive_workflow" else ARMS:
                 for worker in range(payload["specification"]["workers"]):
                     child = self.client.get_orchestration_state(f"{run_id}-{arm}-worker-{worker}")
                     if child:
@@ -350,9 +408,9 @@ class SchedulerAccess:
         return []
 
     def retry_failed(self, parent_run_id: str) -> str:
-        if self.get_run(parent_run_id)["mode"] == "multi-deployment":
+        if self.get_run(parent_run_id)["mode"] in {"multi-deployment", "adaptive-pool"}:
             raise ValueError(
-                "V4 quality/record failures are evidence; do not turn them into a new Batch retry run"
+                "Online experiment failures are evidence; do not turn them into a new Batch retry run"
             )
         report = self.detail(parent_run_id)
         count = report.get("retryable_failed_records_count", 0)
@@ -391,9 +449,9 @@ class SchedulerAccess:
 
     def recover(self, parent_run_id: str) -> str:
         parent = self.get_run(parent_run_id)
-        if parent["mode"] == "multi-deployment":
+        if parent["mode"] in {"multi-deployment", "adaptive-pool"}:
             raise ValueError(
-                "V4 requires investigated durable replay recovery, not the Batch recovery workflow"
+                "Online experiments require investigated durable replay recovery, not the Batch recovery workflow"
             )
         if parent["runtime_status"] not in {"failed", "terminated", "canceled"}:
             raise ValueError("Recovery requires an investigated, terminal orchestration failure")

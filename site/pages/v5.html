@@ -1,0 +1,51 @@
+      <section id="v5" class="evidence" aria-labelledby="v5-title" data-results-final="@@V5_FINAL@@">
+        <div class="evidence-heading"><div><p class="version">CHAPTER 5 &middot; GPT-5 MINI &middot; 2025-08-07</p><h1 id="v5-title">Schedule before throttling.<br>Measure the whole request.</h1></div>@@V5_STATUS@@</div>
+        <p class="evidence-context">520 records per arm &middot; five deployments &middot; the same 300K TPM / 300 RPM pool &middot; unchanged complex-v2 prompts &middot; five-worker ceiling.</p>
+        <div class="chapter-summary">
+          <div><span class="verdict">BASELINE / REACTIVE</span><h3>Send to the next eligible target.</h3><p>V4-style round robin skips busy or cooling targets, then reacts to service throttling. This is a fresh baseline inside the V5 harness.</p></div>
+          <div><span class="verdict">V5 / QUOTA-AWARE</span><h3>Reserve capacity before dispatch.</h3><p>Token/request budgets, headroom, returned limits, and successful-call latency guide selection. A durable shared queue lets available workers take eligible work.</p></div>
+        </div>
+        <div class="callout"><strong>Same pool, not extra capacity in the adaptive arm.</strong><p>Both use one 100K target plus four 50K targets. Both also share client/manifest reuse, queue design, inputs, output ceiling, and retry budget. Historical V4 used 150K per arm and 65 records; its elapsed time is not the baseline for this 520-record test.</p></div>
+        <nav class="section-links" aria-label="V5 sections"><a href="#v5-results">Results and averages</a><a href="#v5-latency">What the averages mean</a><a href="#v5-targets">Five-target evidence</a><a href="#v5-quality">Quality</a><a href="#v5-reproduce">Reproduce</a></nav>
+
+        <section id="v5-results" aria-labelledby="v5-results-title">
+          <h2 id="v5-results-title">Throughput and average request completion</h2>
+          <div class="callout warning" id="v5-notice">@@V5_NOTICE@@<p class="small">Evidence exported <time datetime="@@V5_DATETIME@@">@@V5_OBSERVED@@</time>. Static snapshot, not a live Azure monitor.</p></div>
+          <div class="table-shell" tabindex="0" role="region" aria-label="V5 outcomes and average request time"><table><caption>520 benchmark records per arm; warm-ups excluded. HTTP means cover 200 responses. Successful-record means include admission and retries after a record becomes ready. Job duration / record count is not request latency.</caption><thead><tr><th scope="col">Policy</th><th scope="col">Validated</th><th scope="col">Failed</th><th scope="col">429 attempts</th><th scope="col">Arm time</th><th scope="col">Validated / min</th><th scope="col">Average HTTP 200</th><th scope="col">Average successful record</th><th scope="col">Usage estimate</th></tr></thead><tbody>@@V5_ROWS@@</tbody></table></div>
+          <div class="metric-grid"><div class="metric"><strong>@@V5_WALL@@</strong><span>Whole workflow, including preparation, warm-ups, pauses, and reconciliation</span></div><div class="metric"><strong>@@V5_COST@@</strong><span>Reported token-usage estimate including warm-ups; infrastructure excluded</span></div><div class="metric"><strong>@@V5_GUARD@@</strong><span>Conservative application model-usage guard, not a subscription spending cap</span></div></div>
+        </section>
+
+        <section id="v5-latency" class="evidence" aria-labelledby="v5-latency-title">
+          <h2 id="v5-latency-title">Three clocks. Explicit denominators.</h2>
+          <div class="grid-three">
+            <article class="card"><h3>HTTP call time</h3><p>The API attempt itself: client, authentication, network, and response. HTTP 200 is transport success, not proof of correct analysis.</p></article>
+            <article class="card"><h3>Record processing time</h3><p>First readiness at the queue head to a validated final outcome. Includes admission waiting and retries. Successful-only and all-record averages are separate.</p></article>
+            <article class="card"><h3>Enqueue-to-completion</h3><p>From the measured arm's enqueue time to each record's outcome. Includes the backlog ahead of it. This can be much larger than the HTTP time.</p></article>
+          </div>
+          <div class="table-shell" style="margin-top:1.5rem" tabindex="0" role="region" aria-label="V5 average latency definitions and denominators"><table><caption>Actual means from recorded timestamps/durations. A dash means not measured. Fast failed attempts must not make a workload appear faster.</caption><thead><tr><th scope="col">Policy</th><th scope="col">Measurement</th><th scope="col">Average</th><th scope="col">Measured count</th></tr></thead><tbody>@@V5_TIMING_ROWS@@</tbody></table></div>
+          <p class="small" style="margin-top:1rem">Record outcome timestamps are captured after response persistence and validation, immediately before the final metadata write. HTTP timestamps remain separate. p50/p95, backlog waiting, token usage, and timing coverage are included in the downloadable evidence. Do not compare conditional successful-only means without checking failures.</p>
+        </section>
+
+        <section id="v5-targets" class="evidence" aria-labelledby="v5-targets-title">
+          <h2 id="v5-targets-title">Five deployments, visible distribution</h2>
+          <div class="table-shell" tabindex="0" role="region" aria-label="V5 per-target observations"><table><caption>One in-flight request per target; the global ceiling is five. Configured allocations and observed headers remain separate measurements.</caption><thead><tr><th scope="col">Policy</th><th scope="col">Target</th><th scope="col">Allocated TPM</th><th scope="col">Attempts</th><th scope="col">HTTP 200</th><th scope="col">HTTP 429</th><th scope="col">Average HTTP 200</th><th scope="col">Observed limits</th></tr></thead><tbody>@@V5_TARGET_ROWS@@</tbody></table></div>
+          <details><summary>Warm-ups are real requests, reported separately</summary><div class="details-body"><p>Each arm first sends five distinct synthetic warm-up records, one per deployment, with bounded retries. A 65-second pause follows warm-ups and separates arms. This reduces immediate carryover pressure but does not guarantee identical cache or service conditions.</p><div class="table-shell" tabindex="0" role="region" aria-label="V5 warm-up accounting"><table><thead><tr><th scope="col">Stage</th><th scope="col">Validated</th><th scope="col">Attempts</th><th scope="col">429s</th><th scope="col">Elapsed</th><th scope="col">Usage estimate</th></tr></thead><tbody>@@V5_WARMUP_ROWS@@</tbody></table></div></div></details>
+          <p class="small" style="margin-top:1rem">Admission estimates are not the service's exact token accounting. Missing headers use configured estimates; invalid header values are counted. Temporary observed limits are rechecked conservatively. No internal scale-up signal, dedicated GPU allocation, or zero-429 guarantee is claimed.</p>
+        </section>
+
+        <section id="v5-quality" class="evidence" aria-labelledby="v5-quality-title">
+          <h2 id="v5-quality-title">More throughput still needs correct answers</h2>
+          <div class="table-shell" tabindex="0" role="region" aria-label="V5 unchanged semantic gates"><table><caption>The same 425-route, 850-example prompt and eleven-field scoring. Field percentages use evaluated outputs; all-check passes use all 520 expected records.</caption><thead><tr><th scope="col">Policy</th><th scope="col">Evaluated</th><th scope="col">Primary route</th><th scope="col">Confidence rule</th><th scope="col">Every check passed</th><th scope="col">Acceptance</th></tr></thead><tbody>@@V5_QUALITY_ROWS@@</tbody></table></div>
+          <p class="small" style="margin-top:1rem">Neither expected answers nor thresholds are relaxed to make routing look successful. This is synthetic evaluation, not a production accuracy certification.</p>
+        </section>
+
+        <section id="v5-reproduce" class="evidence" aria-labelledby="v5-reproduce-title">
+          <h2 id="v5-reproduce-title">Download, preview, then opt in</h2>
+          <pre><code>llm-batch v5-run --scenario scenarios\v5-adaptive-520.json --config .azure\v5-config.json
+# Add --yes only after reviewing topology, costs, and approvals.
+llm-batch v5-status YOUR_RUN_ID --config .azure\v5-config.json --wait</code></pre>
+          <p style="margin-top:1rem">The guide covers the scoped allocation change, content-policy preservation, real topology checks, durable execution, averages, cancellation, private artifacts, and export. Code previews do not send inference. Do not create another paid root merely because an observer disconnects.</p>
+          <div class="evidence-links"><a href="@@REPO@@/blob/main/docs/v5-adaptive.md">V5 step-by-step guide &nearr;</a><a href="@@REPO@@/blob/main/docs/v5-results.md">Measured report &nearr;</a><a href="data/v5-results.json" download>V5 aggregate evidence</a><a href="data/v5-output-samples.json" download>V5 synthetic outcome examples</a><a href="@@REPO@@/blob/main/scenarios/v5-adaptive-520.json">520-record scenario &nearr;</a><a href="@@REPO@@/releases/tag/v0.5.0">V5 release and code &nearr;</a></div>
+          <div class="limitations" style="margin-top:1.5rem"><strong>Interpret this as a paired experiment, not a guaranteed speedup.</strong><p>Reactive runs first; cache, service demand, and observed limits can vary over time. Both arms use the same five-target allocation. Compare completion, useful throughput, and every latency definition. If an arm fails records, its time to finish the entire workload successfully is not established.</p></div>
+        </section>
+      </section>

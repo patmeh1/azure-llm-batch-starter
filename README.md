@@ -9,7 +9,7 @@ All examples are synthetic. No Azure credentials or customer content are include
 
 **Customer-facing website:** [Overview](https://patmeh1.github.io/azure-llm-batch-starter/)
 and [side-by-side comparison](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html).
-Separate pages explain v1/v2 **GPT-5.4 mini** versus v3/v4 **GPT-5 mini**, the exact
+Separate pages explain v1/v2 **GPT-5.4 mini** versus v3/v4/v5 **GPT-5 mini**, the exact
 configuration changes, measured outcomes, limitations, prompts, and downloads.
 The site does not connect to Azure or trigger inference.
 
@@ -26,6 +26,8 @@ The site does not connect to Azure or trigger inference.
 | Inspect the full v3 experiment's current evidence | [V3 results/status](docs/v3-results.md) |
 | Compare one deployment with three at the same total quota | [V4 step-by-step guide](docs/v4-multi-deployment.md) |
 | Inspect the 65-record-per-arm multi-deployment pilot | [V4 results](docs/v4-results.md) |
+| Run quota-aware scheduling on five targets | [V5 guide](docs/v5-adaptive.md) |
+| Compare 520-record arms and average request completion | [V5 results/status](docs/v5-results.md) |
 | Maintain or republish the public HTML site | [Customer site guide](docs/customer-site.md) |
 | Review v2 timing and failed semantic acceptance gates | [V2 measured results](docs/complex-v2-validation.md) |
 | Understand the reusable Microsoft framework | [Orchestration](docs/orchestration.md) |
@@ -103,7 +105,7 @@ round-robin/per-target-cooldown router. **The pool does not add aggregate
 quota.** This is online inference in Durable Functions, not service Batch.
 
 ```powershell
-llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v3-config.json
+llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v4-config.json
 ```
 
 This previews without charges. Follow the [v4 guide](docs/v4-multi-deployment.md)
@@ -112,6 +114,25 @@ and export measured evidence. [Pilot results](docs/v4-results.md) distinguish
 record failures, HTTP 429 attempts, and semantic quality; multiple deployments
 are not a no-throttling guarantee. A 1,700-record scenario is included but
 **was not executed**. The interrupted v3 run remains separately labeled.
+
+## V5 quota-aware scheduling and request averages
+
+Version **0.5.0** adds a durable shared work queue, pre-dispatch token/request
+reservations, bounded header feedback, capacity-aware selection, and reusable
+HTTP/manifest caches. A fresh reactive baseline and adaptive arm use the
+**same five-target 300K TPM pool**, 520 records each, and unchanged prompts.
+The [V5 guide](docs/v5-adaptive.md) explains the approved upgrade from the
+four existing model deployments and the required live topology checks.
+
+```powershell
+llm-batch v5-run --scenario scenarios\v5-adaptive-520.json --config .azure\v5-config.json
+```
+
+This is a preview until `--yes` is added. [V5 evidence](docs/v5-results.md)
+separates average successful HTTP duration, successful/all-record processing,
+backlog-inclusive completion, and total job time. Missing historical means
+are not reconstructed as job duration divided by record count. Processing
+success, throttling, and semantic quality remain independent outcomes.
 
 ## Real Azure demo
 

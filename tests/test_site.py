@@ -46,7 +46,7 @@ def test_build_contains_real_evidence_and_only_allowlisted_assets(site_root):
         titles.add(re.search(r"<title>(.*?)</title>", page)[1])
         assert "@@" not in page
     assert len(titles) == len(site.PAGES)
-    assert len(list((output / "data").glob("*.json"))) == 6
+    assert len(list((output / "data").glob("*.json"))) == 8
     assert len(list((output / "prompts").glob("*.md"))) == 4
     assert not (output / ".azure").exists()
     assert not (output / "outputs").exists()
@@ -173,8 +173,12 @@ def test_comparison_table_explains_model_identity_and_confounded_variables(site_
     assert "Final comparison withheld" in page
     assert "V4 / MATCHED QUOTA" in page
     assert "150K TPM / 150 RPM in each arm" in page
-    assert 'colspan="5"' in page
+    assert 'colspan="6"' in page
     assert "Three deployments" in page
+    assert "V5 / SMART ROUTING" in page
+    assert "Average successful HTTP call" in page
+    assert "Average enqueue-to-record completion" in page
+    assert "Not recorded" in page
 
 
 def test_final_comparison_does_not_keep_stale_incomplete_claims(site_root):
@@ -295,5 +299,131 @@ def test_v4_cannot_silently_change_model_or_prompt(site_root):
         site.render_v4(altered)
     value["workload_profile"]["prompt_bundle_sha256"] = "not-the-v2-prompt"
     path.write_text(json.dumps(value))
-    with pytest.raises(ValueError, match="v2/v3/v4 bundle hashes"):
+    with pytest.raises(ValueError, match="v2/v3/v4/v5 bundle hashes"):
         site.build_site(site_root)
+
+
+def v5_terminal_fixture():
+    value = json.loads((ROOT / "docs" / "v5-results.json").read_text())
+    value.update(
+        results_final=True,
+        execution_status="completed",
+        processing_status="succeeded",
+        benchmark_valid=True,
+        acceptance_status="needs_review",
+        end_to_end_elapsed_seconds=2100,
+        reported_model_usage_estimate_usd=1,
+        router_reconciliation_required=False,
+    )
+
+    def stage(arm, total):
+        counts = [total // 5] * 5
+        targets = [
+            {
+                "alias": f"target-{index + 1}",
+                "allocated_tpm": 100000 if index == 0 else 50000,
+                "allocated_rpm": 100 if index == 0 else 50,
+                "http_attempts": amount,
+                "responses_200": amount,
+                "errors_429": 0,
+                "observed_rate_limits": [],
+                "http_200_latency_mean_seconds": 2,
+            }
+            for index, amount in enumerate(counts)
+        ]
+        return {
+            "arm": arm,
+            "status": "succeeded",
+            "record_count": total,
+            "succeeded": total,
+            "failed": 0,
+            "pending": 0,
+            "elapsed_seconds": 1000,
+            "http_attempts": total,
+            "errors_429": 0,
+            "target_metrics": targets,
+            "http_attempted_record_count": total,
+            "http_200_latency_mean_seconds": 2,
+            "http_200_latency_measured_count": total,
+            "http_attempt_latency_mean_seconds": 2,
+            "http_attempt_latency_measured_count": total,
+            "successful_record_elapsed_mean_seconds": 13,
+            "successful_record_elapsed_measured_count": total,
+            "all_record_elapsed_mean_seconds": 13,
+            "record_elapsed_measured_count": total,
+            "queue_to_completion_mean_seconds": 123,
+            "queue_to_completion_measured_count": total,
+            "priced_usage_estimate_usd": 0.1,
+            "gate": {"status": "needs_review"},
+            "quality": {
+                "evaluated_records": total,
+                "passed_records": 1,
+                "field_accuracy": {"primary_route": 0.9, "confidence": 0.8},
+            },
+        }
+
+    value["stages"] = [stage(arm, 520) for arm in ("reactive", "adaptive")]
+    value["warmups"] = [stage(arm + "-warmup", 5) for arm in ("reactive", "adaptive")]
+    return value
+
+
+def test_v5_mean_request_times_are_not_job_duration_divided_by_count():
+    result = site.render_v5(v5_terminal_fixture())
+    assert "2.00 s" in result["V5_ROWS"]
+    assert "13.00 s" in result["V5_ROWS"]
+    assert "123.00 s" in result["V5_TIMING_ROWS"]
+    assert "1.92 s" not in result["V5_ROWS"]
+    assert ">520<" in result["V5_TIMING_ROWS"]
+
+
+def test_v5_pending_evidence_does_not_invent_zero_average_or_completion():
+    value = v5_terminal_fixture()
+    value.update(results_final=False, execution_status="running", stages=[], warmups=[])
+    result = site.render_v5(value)
+    assert "Not final" in result["V5_ROWS"]
+    assert "&mdash; / 520" in result["V5_ROWS"]
+    assert result["V5_WALL"] == "Not final"
+    assert "No final V5 speedup claim" in result["V5_VERDICT"]
+
+
+def test_v5_rejects_wrong_mean_denominators():
+    value = v5_terminal_fixture()
+    value["stages"][0]["http_200_latency_measured_count"] -= 1
+    with pytest.raises(ValueError, match="HTTP mean denominator"):
+        site.render_v5(value)
+    value = v5_terminal_fixture()
+    value["stages"][0]["successful_record_elapsed_mean_seconds"] = None
+    with pytest.raises(ValueError, match="explicit measured denominators"):
+        site.render_v5(value)
+
+
+def test_v5_keeps_failed_records_out_of_full_workload_speedup_claim():
+    value = v5_terminal_fixture()
+    value["processing_status"] = "needs_attention"
+    value["stages"][1].update(
+        succeeded=519,
+        failed=1,
+        status="partial_failure",
+        elapsed_seconds=500,
+        successful_record_elapsed_measured_count=519,
+    )
+    result = site.render_v5(value)
+    assert "full-workload speedup is not established" in result["V5_VERDICT"]
+
+
+def test_v5_validates_five_target_allocation_and_warmup_accounting():
+    value = v5_terminal_fixture()
+    value["stages"][0]["target_metrics"].pop()
+    with pytest.raises(ValueError, match="same five-target"):
+        site.render_v5(value)
+    value = v5_terminal_fixture()
+    value["warmups"].pop()
+    with pytest.raises(ValueError, match="warm-up accounting"):
+        site.render_v5(value)
+
+
+def test_v5_does_not_claim_500_records_when_inference_was_not_reached():
+    value = v5_terminal_fixture()
+    value["stages"][0]["http_attempted_record_count"] = 499
+    result = site.render_v5(value)
+    assert "Fewer than 500 records reached inference" in result["V5_VERDICT"]

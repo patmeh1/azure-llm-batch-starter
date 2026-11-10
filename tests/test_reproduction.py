@@ -96,7 +96,7 @@ def test_client_batch_executes_each_group_sequentially_in_parallel(tmp_path):
 def test_v2_default_settings_fingerprint_is_not_changed_by_v3_field():
     settings = Settings()
     legacy = settings.model_dump_json(
-        exclude={"scheduler_endpoint", "task_hub", "observation_profile"}
+        exclude={"scheduler_endpoint", "task_hub", "observation_profile", "model_resource_id"}
     )
     assert settings.fingerprint() == hashlib.sha256(legacy.encode()).hexdigest()
 

@@ -394,7 +394,8 @@ def test_v4_cli_is_dry_run_without_yes(monkeypatch, tmp_path):
     assert json.loads(result.stdout)["status"] == "planned_not_executed"
 
 
-def test_v4_starter_contains_no_raw_records(tmp_path):
+def test_v4_starter_contains_no_raw_records(tmp_path, monkeypatch):
+    monkeypatch.setattr("llm_batch_starter.scheduler.verify_topology", lambda *_: [])
     access = SchedulerAccess.__new__(SchedulerAccess)
     access.settings = Settings()
     access.registry = State(tmp_path / "state.sqlite3")

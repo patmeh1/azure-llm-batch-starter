@@ -10,16 +10,17 @@ navigation without JavaScript.
 | Page | Purpose |
 |---|---|
 | [Overview](https://patmeh1.github.io/azure-llm-batch-starter/) | The story: capacity and pacing, complex-task accuracy, then GPT-5 mini grouping |
-| [Compare versions](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html) | Side-by-side configuration and outcome tables across v1/v2/v3/v4 |
+| [Compare versions](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html) | Five-version configuration, outcomes, and actual average request/record timings |
 | [V1 baseline](https://patmeh1.github.io/azure-llm-batch-starter/v1.html) | GPT-5.4 mini compact, token-stress, and recovery findings |
 | [V2 complexity](https://patmeh1.github.io/azure-llm-batch-starter/v2.html) | Same GPT-5.4 mini build, complex prompts, and failed semantic gates |
 | [V3 GPT-5 mini](https://patmeh1.github.io/azure-llm-batch-starter/v3.html) | Different model, same complex prompt, fixed groups, and incomplete evidence |
 | [V4 matched quota](https://patmeh1.github.io/azure-llm-batch-starter/v4.html) | One 150K target versus three 50K targets, durable cloud execution, and 65-record pilot evidence |
+| [V5 smart routing](https://patmeh1.github.io/azure-llm-batch-starter/v5.html) | Two 520-record arms on the same five targets, quota-aware admission, and measured averages with denominators |
 | [What works](https://patmeh1.github.io/azure-llm-batch-starter/approach.html) | Decisions supported by the evidence, not a model ranking |
 | [Resources](https://patmeh1.github.io/azure-llm-batch-starter/resources.html) | Quickstart, prompts, guides, code, architecture, outputs, and releases |
 | [Methodology](https://patmeh1.github.io/azure-llm-batch-starter/methodology.html) | What was held constant, changed, and cannot be concluded |
 
-V1/v2 explicitly identify **GPT-5.4 mini 2026-03-17**; v3/v4 identify
+V1/v2 explicitly identify **GPT-5.4 mini 2026-03-17**; v3/v4/v5 identify
 **GPT-5 mini 2025-08-07**. The comparison separates prompt/task complexity,
 record counts, quota, pacing, output ceilings, execution modes, service-Batch
 availability, timing, 429s, quality, and token-cost estimates. It does not merge
@@ -38,6 +39,8 @@ as `/#v2` redirect to their dedicated pages when JavaScript is available.
 | V3 example outputs | `docs/v3-partial-output-sample.json` |
 | V4 matched-quota pilot | `docs/v4-results.json` |
 | V4 synthetic output examples | `docs/v4-output-samples.json` |
+| V5 matched-policy measurements and latency means | `docs/v5-results.json` |
+| V5 synthetic record outcomes | `docs/v5-output-samples.json` |
 | Downloadable prompts | The four Markdown files under `prompts` |
 | Illustrative dashboard image | `docs/images/complex-dashboard-demo.png`, labeled SIMULATED |
 
@@ -68,8 +71,8 @@ Open `http://127.0.0.1:8771`. Stop the temporary server before running browser
 tests, which manage their own server on that port.
 
 The builder is Python standard-library code. `site/layout.html` is shared by
-the nine templates in `site/pages`. It reads a fixed allowlist and
-produces only the nine HTML pages, public evidence JSON, Markdown prompts, and an
+the ten templates in `site/pages`. It reads a fixed allowlist and
+produces only the ten HTML pages, public evidence JSON, Markdown prompts, and an
 illustrative image under ignored `_site`. It rejects unexpected output files,
 common private-context fields/values, inconsistent outcome counts, and
 contradictory pending/final flags rather than silently publishing them.
@@ -150,3 +153,18 @@ shorter failed run as a speedup. Changing the published scenario requires
 deliberately reviewing both narrative and validation assertions. Do not
 overwrite v3's interrupted checkpoint or turn the supplied 1,700-record
 scenario into an executed result.
+
+## Updating V5 request averages
+
+Monitor the existing root with `v5-status`, then export its saved report using
+`v5-export`. Copy only the reviewed aggregate and example files into the two
+V5 evidence paths above; do not copy private worker logs or configuration.
+While either arm is incomplete, the page withholds final averages and speed
+claims. A final operational report can still contain processing/quality
+failures, which must remain visible.
+
+The V5 renderer validates the five-target allocation, 520 main records,
+separate five-record warm-ups, outcome counts, and timing denominators.
+The comparison table adds successful-HTTP, successful/all-record, and
+enqueue-to-completion mean rows. Historical missing means remain unavailable.
+Never fill those cells using a median or job elapsed divided by record count.

@@ -99,3 +99,26 @@ subscription, region, identity, network exception, or PTU is introduced.
 See the [v4 guide](v4-multi-deployment.md) for boundaries and operations.
 The editable base diagram remains the v1/v2 Batch topology, not a drawing
 of the v4 routing pool.
+
+## V5 shared queue and quota-aware admission
+
+V5 adds `adaptive_workflow`, five `adaptive_worker` sub-orchestrations per
+stage, an `adaptive_router` entity, and `v5_activity`. Reactive and adaptive
+policies share the same five-target pool, queue, process-local connection/
+manifest caching, worker ceiling, retry policy, warm-ups, and dataset.
+V5 reuses the V4 global experiment lease to prevent overlapping application
+runs against these targets within the same task hub.
+
+The adaptive entity reserves estimated token/request capacity before sending
+work. Its selection accounts for availability, configured/effective limits,
+and successful HTTP latency. One in-flight call per target avoids out-of-order
+remaining-budget feedback. Metadata-only durable messages remain below the
+scheduler's payload limit; raw records and responses remain in private Blob
+Storage. The 520-record, four-attempt worst-case entity ledger is tested
+against a 900,000-byte threshold below the 1 MiB service limit.
+
+The model template reduces the retained control to 100K and adds one 50K
+target, retaining three existing 50K targets. Its content policy is read from
+the control and preserved explicitly. Actual allocation/model/policy checks
+prevent a drifted environment from being mislabeled as the planned experiment.
+See [V5 operations and metric definitions](v5-adaptive.md).

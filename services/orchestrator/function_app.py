@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import atexit
 import json
 import logging
+import threading
 from datetime import UTC, datetime, timedelta
 
 import azure.durable_functions as df
 import azure.functions as func
 
+from llm_batch_starter.adaptive import ADAPTIVE_ARMS, update_admission
+from llm_batch_starter.adaptive_cloud import AdaptiveActivities
 from llm_batch_starter.azure_state import AzureState, create_cloud_run, valid_run_id
 from llm_batch_starter.cloud_activities import CloudActivities
 from llm_batch_starter.complex_workload import configure, generate_complex
@@ -18,6 +22,241 @@ from llm_batch_starter.quota import update_reservations
 from llm_batch_starter.synthetic import generate_dataset
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
+
+_adaptive_service: AdaptiveActivities | None = None
+_adaptive_lock = threading.Lock()
+
+
+def adaptive_service() -> AdaptiveActivities:
+    global _adaptive_service
+    with _adaptive_lock:
+        if _adaptive_service is None:
+            _adaptive_service = AdaptiveActivities()
+            atexit.register(_adaptive_service.close)
+        return _adaptive_service
+
+
+@app.orchestration_trigger(context_name="context")
+def adaptive_workflow(context: df.DurableOrchestrationContext):
+    return (yield from adaptive_steps(context))
+
+
+def adaptive_steps(context: df.DurableOrchestrationContext):
+    root = context.instance_id
+    prepared = yield context.call_activity_with_retry(
+        "v5_activity",
+        df.RetryOptions(5000, 3),
+        {"operation": "bootstrap", **context.get_input(), "run_id": root},
+    )
+    lease = df.EntityId("multi_router", "gpt5-mini-matched")
+    acquired = yield context.call_entity(lease, "acquire", {"owner": root})
+    if not acquired["acquired"]:
+        raise RuntimeError("Another V4/V5 experiment holds the routing lease; investigate it first")
+    spec, completed = prepared["specification"], []
+    for arm in ADAPTIVE_ARMS:
+        if completed:
+            yield context.create_timer(
+                v4_time(context) + timedelta(seconds=spec["cooldown_seconds"])
+            )
+        for stage in (arm + "-warmup", arm):
+            started = yield context.call_activity_with_retry(
+                "v5_activity",
+                df.RetryOptions(2000, 3),
+                {
+                    "operation": "begin",
+                    "run_id": root,
+                    "arm": stage,
+                },
+            )
+            router = df.EntityId("adaptive_router", f"{root}-{stage}")
+            yield context.call_entity(
+                router,
+                "begin",
+                {
+                    "owner": root,
+                    "stage": stage,
+                    "now": started["started_at"],
+                    **prepared,
+                },
+            )
+            context.set_custom_status({"phase": stage, "completed_stages": completed})
+            tasks = [
+                context.call_sub_orchestrator(
+                    "adaptive_worker",
+                    {"run_id": root, "arm": stage, "worker": worker},
+                    instance_id=f"{root}-{stage}-worker-{worker}",
+                    version=context.version,
+                )
+                for worker in range(spec["workers"])
+            ]
+            yield context.task_all(tasks)
+            snapshot = yield context.call_entity(
+                router,
+                "snapshot",
+                {
+                    "owner": root,
+                    "now": v4_time(context).isoformat(),
+                },
+            )
+            if snapshot["completed"] != snapshot["expected"]:
+                raise RuntimeError("V5 admission queue did not reconcile every record")
+            yield context.call_activity_with_retry(
+                "v5_activity",
+                df.RetryOptions(2000, 3),
+                {
+                    "operation": "save_admission",
+                    "run_id": root,
+                    "arm": stage,
+                    "snapshot": snapshot,
+                },
+            )
+            result = yield context.call_activity_with_retry(
+                "v5_activity",
+                df.RetryOptions(2000, 3),
+                {
+                    "operation": "finalize_arm",
+                    "run_id": root,
+                    "arm": stage,
+                },
+            )
+            report = result["report"]
+            completed.append(
+                {
+                    "arm": stage,
+                    **{
+                        key: report[key]
+                        for key in (
+                            "status",
+                            "succeeded",
+                            "failed",
+                            "pending",
+                            "elapsed_seconds",
+                            "errors_429",
+                            "http_200_latency_mean_seconds",
+                            "all_record_elapsed_mean_seconds",
+                        )
+                    },
+                }
+            )
+            context.set_custom_status({"phase": stage, "completed_stages": completed})
+            if stage.endswith("-warmup"):
+                if report["failed"]:
+                    yield context.call_activity_with_retry(
+                        "v5_activity",
+                        df.RetryOptions(2000, 3),
+                        {"operation": "cancel", "run_id": root},
+                    )
+                else:
+                    yield context.create_timer(
+                        v4_time(context) + timedelta(seconds=spec["cooldown_seconds"])
+                    )
+    result = yield context.call_activity_with_retry(
+        "v5_activity", df.RetryOptions(2000, 3), {"operation": "finalize", "run_id": root}
+    )
+    if not result["router_reconciliation_required"]:
+        yield context.call_entity(lease, "release", {"owner": root})
+    return result
+
+
+@app.orchestration_trigger(context_name="context")
+def adaptive_worker(context: df.DurableOrchestrationContext):
+    return (yield from adaptive_worker_steps(context))
+
+
+def adaptive_worker_steps(context: df.DurableOrchestrationContext):
+    options = context.get_input()
+    root, stage, worker = options["run_id"], options["arm"], options["worker"]
+    router = df.EntityId("adaptive_router", f"{root}-{stage}")
+    sequence, completed = 0, 0
+    while True:
+        cancelled = yield context.call_activity_with_retry(
+            "v5_activity", df.RetryOptions(2000, 3), {"operation": "control", "run_id": root}
+        )
+        key = f"{worker}-{sequence}"
+        grant = yield context.call_entity(
+            router,
+            "claim",
+            {
+                "owner": root,
+                "key": key,
+                "now": v4_time(context).isoformat(),
+                **cancelled,
+            },
+        )
+        if grant.get("done"):
+            return {"worker": worker, "processed": completed}
+        if grant.get("wait_until"):
+            yield context.create_timer(datetime.fromisoformat(grant["wait_until"]))
+            continue
+        item = {"run_id": root, "arm": stage, **grant}
+        if grant.get("terminal_error"):
+            result = yield context.call_activity_with_retry(
+                "v5_activity",
+                df.RetryOptions(2000, 3),
+                {
+                    "operation": "finish_record",
+                    **item,
+                    "error": grant["terminal_error"],
+                },
+            )
+        else:
+            result = yield context.call_activity("v5_activity", {"operation": "attempt", **item})
+        yield context.call_entity(
+            router,
+            "ack",
+            {
+                "owner": root,
+                "key": key,
+                "now": v4_time(context).isoformat(),
+                "response": result,
+            },
+        )
+        completed += int(result["terminal"])
+        sequence += 1
+        context.set_custom_status(
+            {
+                "arm": stage,
+                "worker": worker,
+                "processed": completed,
+                "last_progress_at": v4_time(context).isoformat(),
+            }
+        )
+
+
+@app.entity_trigger(context_name="context")
+def adaptive_router(context: df.DurableEntityContext):
+    state, result = update_admission(
+        context.get_state(lambda: {}),
+        context.operation_name,
+        context.get_input(),
+    )
+    context.set_state(state)
+    context.set_result(result)
+
+
+@app.activity_trigger(input_name="item")
+def v5_activity(item: dict):
+    activities = adaptive_service()
+    operation = item["operation"]
+    if operation == "bootstrap":
+        return activities.bootstrap(item)
+    if operation == "begin":
+        return activities.begin_arm(item["run_id"], item["arm"])
+    if operation == "control":
+        return activities.control(item["run_id"])
+    if operation == "cancel":
+        return activities.cancel(item["run_id"])
+    if operation == "attempt":
+        return activities.attempt(item)
+    if operation == "finish_record":
+        return activities.finish_record(item)
+    if operation == "save_admission":
+        return activities.save_admission(item["run_id"], item["arm"], item["snapshot"])
+    if operation == "finalize_arm":
+        return activities.finalize_arm(item["run_id"], item["arm"])
+    if operation == "finalize":
+        return activities.finalize(item["run_id"])
+    raise ValueError("Unsupported V5 activity operation")
 
 
 def v4_time(context: df.DurableOrchestrationContext) -> datetime:

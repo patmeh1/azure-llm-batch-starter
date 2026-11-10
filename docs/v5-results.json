@@ -1,0 +1,1049 @@
+{
+  "application_version": "0.5.0",
+  "observed_at": "2026-11-10T23:33:16.758768+00:00",
+  "results_final": true,
+  "execution_status": "completed",
+  "processing_status": "needs_attention",
+  "acceptance_status": "needs_review",
+  "started_at": "2026-11-10T21:44:52.295011+00:00",
+  "ended_at": "2026-11-10T23:32:31.849968+00:00",
+  "model": {
+    "cached_input_price_per_million": 0.0275,
+    "concurrency": 5,
+    "input_price_per_million": 0.275,
+    "max_output_tokens": 2048,
+    "model_name": "gpt-5-mini",
+    "model_version": "2025-08-07",
+    "output_price_per_million": 2.2,
+    "reasoning_effort": "low",
+    "region": "southcentralus"
+  },
+  "workload_profile": {
+    "active_aggregate_rpm_per_arm": 300,
+    "active_aggregate_tpm_per_arm": 300000,
+    "batch_api_used": false,
+    "catalog_examples": 850,
+    "experiment": "v5-adaptive",
+    "name": "complex-v2",
+    "prompt_bundle_sha256": "469532c76922192658dd12a81cd842a8b2328d529db6acbb4c433385e30cb4fe",
+    "prompt_files": [
+      "complex-system-v2.md",
+      "complex-taxonomy-v2.md",
+      "complex-user-v2.md"
+    ],
+    "purpose": "Synthetic semantic/rule complexity, not a production-equivalence claim",
+    "routing": "shared_queue_reactive_vs_quota_aware",
+    "scale_up_state": "not_observable_from_http_429",
+    "scenario_families": [
+      "direct_need",
+      "stale_candidate",
+      "ivr_distraction",
+      "negated_intent",
+      "corrected_goal",
+      "secondary_topics",
+      "insufficient_source",
+      "partial_evidence",
+      "unresolved_handoff",
+      "ambiguous_tie",
+      "confidence_upgrade",
+      "instruction_in_data",
+      "partial_outcome"
+    ],
+    "taxonomy_routes": 425,
+    "warmup_records_per_arm": 5
+  },
+  "specification": {
+    "count": 520,
+    "seed": 42,
+    "workers": 5,
+    "max_attempts": 4,
+    "cooldown_seconds": 65,
+    "stage_timeout_seconds": 7200,
+    "max_estimated_inference_usd": 75.0,
+    "headroom": 0.95
+  },
+  "active_aggregate_tpm_per_arm": 300000,
+  "active_aggregate_rpm_per_arm": 300,
+  "allocated_deployments_total": 5,
+  "conservative_all_attempts_estimate_usd": 56.4316236,
+  "end_to_end_elapsed_seconds": 6478.074303,
+  "reported_model_usage_estimate_usd": 2.7173795550000004,
+  "warmup_usage_estimate_usd": 0.038971900000000004,
+  "router_reconciliation_required": false,
+  "topology_snapshot": [
+    {
+      "alias": "target-1",
+      "model": "gpt-5-mini",
+      "version": "2025-08-07",
+      "sku": "DataZoneStandard",
+      "allocated_tpm": 100000,
+      "allocated_rpm": 100,
+      "resource_region": "southcentralus"
+    },
+    {
+      "alias": "target-2",
+      "model": "gpt-5-mini",
+      "version": "2025-08-07",
+      "sku": "DataZoneStandard",
+      "allocated_tpm": 50000,
+      "allocated_rpm": 50,
+      "resource_region": "southcentralus"
+    },
+    {
+      "alias": "target-3",
+      "model": "gpt-5-mini",
+      "version": "2025-08-07",
+      "sku": "DataZoneStandard",
+      "allocated_tpm": 50000,
+      "allocated_rpm": 50,
+      "resource_region": "southcentralus"
+    },
+    {
+      "alias": "target-4",
+      "model": "gpt-5-mini",
+      "version": "2025-08-07",
+      "sku": "DataZoneStandard",
+      "allocated_tpm": 50000,
+      "allocated_rpm": 50,
+      "resource_region": "southcentralus"
+    },
+    {
+      "alias": "target-5",
+      "model": "gpt-5-mini",
+      "version": "2025-08-07",
+      "sku": "DataZoneStandard",
+      "allocated_tpm": 50000,
+      "allocated_rpm": 50,
+      "resource_region": "southcentralus"
+    }
+  ],
+  "benchmark_valid": true,
+  "stages": [
+    {
+      "arm": "reactive",
+      "status": "partial_failure",
+      "started_at": "2026-11-10T21:46:11.280007+00:00",
+      "ended_at": "2026-11-10T22:36:58.360410+00:00",
+      "record_count": 520,
+      "succeeded": 511,
+      "failed": 9,
+      "pending": 0,
+      "elapsed_seconds": 3047.080403,
+      "completed_records_per_minute": 10.06209090177395,
+      "http_attempts": 957,
+      "errors_429": 446,
+      "errors_by_code": {
+        "429": 446
+      },
+      "router_wait_seconds": 5118.286333084106,
+      "input_tokens": 15624200,
+      "output_tokens": 347879,
+      "cached_tokens": 14687104,
+      "reasoning_tokens": 271232,
+      "usage_reports": 511,
+      "usage_complete": false,
+      "http_attempted_record_count": 520,
+      "http_200_latency_mean_seconds": 6.02137350263013,
+      "http_200_latency_p50_seconds": 6.0789939510000295,
+      "http_200_latency_p95_seconds": 8.017601109000026,
+      "http_200_latency_measured_count": 511,
+      "http_attempt_latency_mean_seconds": 3.3505116027251822,
+      "http_attempt_latency_measured_count": 957,
+      "successful_record_elapsed_mean_seconds": 21.992437714285714,
+      "successful_record_elapsed_measured_count": 511,
+      "all_record_elapsed_mean_seconds": 21.9115406,
+      "record_elapsed_measured_count": 520,
+      "record_elapsed_p95_seconds": 38.626675549999995,
+      "backlog_wait_mean_seconds": 1463.9039495057693,
+      "queue_to_completion_mean_seconds": 1485.8154901057692,
+      "queue_to_completion_p95_seconds": 2892.4549376,
+      "queue_to_completion_measured_count": 520,
+      "priced_usage_estimate_usd": 1.42693056,
+      "quality": {
+        "constraint_compliance": {
+          "confidence_bounds": 1.0,
+          "confidence_never_lowered": 1.0,
+          "identifier_suppression": 1.0,
+          "immutable_archived_confidence": 1.0,
+          "improvement_limit_and_distinctness": 1.0,
+          "secondary_limit_and_distinctness": 1.0,
+          "taxonomy_membership": 1.0
+        },
+        "evaluated_records": 511,
+        "exact_match_fraction_of_evaluated": 0.08806262230919765,
+        "expected_records": 520,
+        "field_accuracy": {
+          "cause_explanation": 0.18786692759295498,
+          "cause_group": 0.41487279843444225,
+          "confidence": 0.8767123287671232,
+          "confidence_basis": 0.9980430528375733,
+          "impact": 0.9843444227005871,
+          "improvements": 0.22309197651663404,
+          "prevention": 0.9784735812133072,
+          "prevention_reason": 0.5088062622309197,
+          "primary_route": 0.9452054794520548,
+          "resolution": 0.8238747553816047,
+          "secondary_routes": 0.461839530332681
+        },
+        "fully_correct_fraction_of_all_records": 0.08653846153846154,
+        "grading_note": "Deterministic synthetic gold checks. Free-form newly generated confidence explanations are checked for presence and canary suppression, not independently judged for semantic truth.",
+        "not_evaluated_records": 9,
+        "passed_records": 45,
+        "profile": "complex-v2",
+        "scenario_breakdown": {
+          "ambiguous_tie": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "confidence_upgrade": {
+            "evaluated": 39,
+            "passed": 1,
+            "records": 40
+          },
+          "corrected_goal": {
+            "evaluated": 40,
+            "passed": 2,
+            "records": 40
+          },
+          "direct_need": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "instruction_in_data": {
+            "evaluated": 39,
+            "passed": 0,
+            "records": 40
+          },
+          "insufficient_source": {
+            "evaluated": 40,
+            "passed": 40,
+            "records": 40
+          },
+          "ivr_distraction": {
+            "evaluated": 39,
+            "passed": 0,
+            "records": 40
+          },
+          "negated_intent": {
+            "evaluated": 39,
+            "passed": 0,
+            "records": 40
+          },
+          "partial_evidence": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "partial_outcome": {
+            "evaluated": 38,
+            "passed": 0,
+            "records": 40
+          },
+          "secondary_topics": {
+            "evaluated": 39,
+            "passed": 2,
+            "records": 40
+          },
+          "stale_candidate": {
+            "evaluated": 39,
+            "passed": 0,
+            "records": 40
+          },
+          "unresolved_handoff": {
+            "evaluated": 39,
+            "passed": 0,
+            "records": 40
+          }
+        }
+      },
+      "semantic_status": "not_fully_evaluated",
+      "gate": {
+        "checks": {
+          "all_records_evaluated": false,
+          "all_records_processed": false,
+          "archived_confidence_preserved": true,
+          "confidence_compliance": false,
+          "no_identifier_canaries": true,
+          "primary_accuracy": true
+        },
+        "status": "needs_review"
+      },
+      "target_metrics": [
+        {
+          "alias": "target-1",
+          "allocated_rpm": 100,
+          "allocated_tpm": 100000,
+          "error_indications": {
+            "rate_limit_indication": 118
+          },
+          "errors_429": 118,
+          "http_200_latency_mean_seconds": 5.885541557224848,
+          "http_200_latency_p95_seconds": 7.857436660599933,
+          "http_attempts": 287,
+          "observed_rate_limits": [
+            [
+              "100000",
+              "100"
+            ]
+          ],
+          "responses_200": 169
+        },
+        {
+          "alias": "target-2",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {
+            "rate_limit_indication": 83
+          },
+          "errors_429": 83,
+          "http_200_latency_mean_seconds": 6.297491150564693,
+          "http_200_latency_p95_seconds": 8.884004283599824,
+          "http_attempts": 168,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 85
+        },
+        {
+          "alias": "target-3",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {
+            "rate_limit_indication": 81
+          },
+          "errors_429": 81,
+          "http_200_latency_mean_seconds": 6.081346941779066,
+          "http_200_latency_p95_seconds": 7.787639923499967,
+          "http_attempts": 167,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 86
+        },
+        {
+          "alias": "target-4",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {
+            "rate_limit_indication": 82
+          },
+          "errors_429": 82,
+          "http_200_latency_mean_seconds": 6.050133022279072,
+          "http_200_latency_p95_seconds": 8.170610061249704,
+          "http_attempts": 168,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 86
+        },
+        {
+          "alias": "target-5",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {
+            "rate_limit_indication": 82
+          },
+          "errors_429": 82,
+          "http_200_latency_mean_seconds": 5.925544846658807,
+          "http_200_latency_p95_seconds": 7.922405437399993,
+          "http_attempts": 167,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 85
+        }
+      ],
+      "admission": {
+        "attempts": 957,
+        "completed": 520,
+        "expected": 520,
+        "feedback_updates": 964,
+        "invalid_budget_headers": 946,
+        "reserved_usd": 12.859152624999965,
+        "stage": "reactive"
+      }
+    },
+    {
+      "arm": "adaptive",
+      "status": "succeeded",
+      "started_at": "2026-11-10T22:39:29.443055+00:00",
+      "ended_at": "2026-11-10T23:32:30.638026+00:00",
+      "record_count": 520,
+      "succeeded": 520,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 3181.194971,
+      "completed_records_per_minute": 9.807635270526147,
+      "http_attempts": 520,
+      "errors_429": 0,
+      "errors_by_code": {},
+      "router_wait_seconds": 2763.2654843330383,
+      "input_tokens": 15899741,
+      "output_tokens": 354472,
+      "cached_tokens": 15760768,
+      "reasoning_tokens": 276800,
+      "usage_reports": 520,
+      "usage_complete": true,
+      "http_attempted_record_count": 520,
+      "http_200_latency_mean_seconds": 6.016434049351917,
+      "http_200_latency_p50_seconds": 5.908951806000118,
+      "http_200_latency_p95_seconds": 8.209618736599436,
+      "http_200_latency_measured_count": 520,
+      "http_attempt_latency_mean_seconds": 6.016434049351917,
+      "http_attempt_latency_measured_count": 520,
+      "successful_record_elapsed_mean_seconds": 14.374670426923077,
+      "successful_record_elapsed_measured_count": 520,
+      "all_record_elapsed_mean_seconds": 14.374670426923077,
+      "record_elapsed_measured_count": 520,
+      "record_elapsed_p95_seconds": 27.004151099999998,
+      "backlog_wait_mean_seconds": 1561.6370556134616,
+      "queue_to_completion_mean_seconds": 1576.0117260403847,
+      "queue_to_completion_p95_seconds": 3014.1522341999994,
+      "queue_to_completion_measured_count": 520,
+      "priced_usage_estimate_usd": 1.251477095,
+      "quality": {
+        "constraint_compliance": {
+          "confidence_bounds": 1.0,
+          "confidence_never_lowered": 1.0,
+          "identifier_suppression": 1.0,
+          "immutable_archived_confidence": 1.0,
+          "improvement_limit_and_distinctness": 1.0,
+          "secondary_limit_and_distinctness": 1.0,
+          "taxonomy_membership": 1.0
+        },
+        "evaluated_records": 520,
+        "exact_match_fraction_of_evaluated": 0.09423076923076923,
+        "expected_records": 520,
+        "field_accuracy": {
+          "cause_explanation": 0.20961538461538462,
+          "cause_group": 0.4269230769230769,
+          "confidence": 0.8769230769230769,
+          "confidence_basis": 0.9980769230769231,
+          "impact": 0.9903846153846154,
+          "improvements": 0.2153846153846154,
+          "prevention": 0.9730769230769231,
+          "prevention_reason": 0.49038461538461536,
+          "primary_route": 0.9519230769230769,
+          "resolution": 0.8326923076923077,
+          "secondary_routes": 0.45576923076923076
+        },
+        "fully_correct_fraction_of_all_records": 0.09423076923076923,
+        "grading_note": "Deterministic synthetic gold checks. Free-form newly generated confidence explanations are checked for presence and canary suppression, not independently judged for semantic truth.",
+        "not_evaluated_records": 0,
+        "passed_records": 49,
+        "profile": "complex-v2",
+        "scenario_breakdown": {
+          "ambiguous_tie": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "confidence_upgrade": {
+            "evaluated": 40,
+            "passed": 3,
+            "records": 40
+          },
+          "corrected_goal": {
+            "evaluated": 40,
+            "passed": 1,
+            "records": 40
+          },
+          "direct_need": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "instruction_in_data": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "insufficient_source": {
+            "evaluated": 40,
+            "passed": 40,
+            "records": 40
+          },
+          "ivr_distraction": {
+            "evaluated": 40,
+            "passed": 1,
+            "records": 40
+          },
+          "negated_intent": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "partial_evidence": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "partial_outcome": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          },
+          "secondary_topics": {
+            "evaluated": 40,
+            "passed": 3,
+            "records": 40
+          },
+          "stale_candidate": {
+            "evaluated": 40,
+            "passed": 1,
+            "records": 40
+          },
+          "unresolved_handoff": {
+            "evaluated": 40,
+            "passed": 0,
+            "records": 40
+          }
+        }
+      },
+      "semantic_status": "needs_review",
+      "gate": {
+        "checks": {
+          "all_records_evaluated": true,
+          "all_records_processed": true,
+          "archived_confidence_preserved": true,
+          "confidence_compliance": false,
+          "no_identifier_canaries": true,
+          "primary_accuracy": true
+        },
+        "status": "needs_review"
+      },
+      "target_metrics": [
+        {
+          "alias": "target-1",
+          "allocated_rpm": 100,
+          "allocated_tpm": 100000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 5.776476452405712,
+          "http_200_latency_p95_seconds": 7.843197364799811,
+          "http_attempts": 175,
+          "observed_rate_limits": [
+            [
+              "100000",
+              "100"
+            ]
+          ],
+          "responses_200": 175
+        },
+        {
+          "alias": "target-2",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 6.656175524529435,
+          "http_200_latency_p95_seconds": 7.858813218000364,
+          "http_attempts": 85,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 85
+        },
+        {
+          "alias": "target-3",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 6.333744350593017,
+          "http_200_latency_p95_seconds": 8.369047364500375,
+          "http_attempts": 86,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 86
+        },
+        {
+          "alias": "target-4",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 5.680007026804586,
+          "http_200_latency_p95_seconds": 7.662681355000223,
+          "http_attempts": 87,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 87
+        },
+        {
+          "alias": "target-5",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 5.896836568091916,
+          "http_200_latency_p95_seconds": 8.260530473800008,
+          "http_attempts": 87,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 87
+        }
+      ],
+      "admission": {
+        "attempts": 520,
+        "completed": 520,
+        "expected": 520,
+        "feedback_updates": 1034,
+        "invalid_budget_headers": 0,
+        "reserved_usd": 6.986754775000005,
+        "stage": "adaptive"
+      }
+    }
+  ],
+  "warmups": [
+    {
+      "arm": "reactive-warmup",
+      "status": "succeeded",
+      "started_at": "2026-11-10T21:44:53.560404+00:00",
+      "ended_at": "2026-11-10T21:45:05.728757+00:00",
+      "record_count": 5,
+      "succeeded": 5,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 12.168353,
+      "completed_records_per_minute": 24.654117118397206,
+      "http_attempts": 5,
+      "errors_429": 0,
+      "errors_by_code": {},
+      "router_wait_seconds": 0.0,
+      "input_tokens": 152934,
+      "output_tokens": 3628,
+      "cached_tokens": 90624,
+      "reasoning_tokens": 2880,
+      "usage_reports": 5,
+      "usage_complete": true,
+      "http_attempted_record_count": 5,
+      "http_200_latency_mean_seconds": 8.103851028200188,
+      "http_200_latency_p50_seconds": 7.93968308500007,
+      "http_200_latency_p95_seconds": 9.40903700780027,
+      "http_200_latency_measured_count": 5,
+      "http_attempt_latency_mean_seconds": 8.103851028200188,
+      "http_attempt_latency_measured_count": 5,
+      "successful_record_elapsed_mean_seconds": 9.628047800000001,
+      "successful_record_elapsed_measured_count": 5,
+      "all_record_elapsed_mean_seconds": 9.628047800000001,
+      "record_elapsed_measured_count": 5,
+      "record_elapsed_p95_seconds": 10.7367584,
+      "backlog_wait_mean_seconds": 0.4237268,
+      "queue_to_completion_mean_seconds": 10.0517746,
+      "queue_to_completion_p95_seconds": 11.2054898,
+      "queue_to_completion_measured_count": 5,
+      "priced_usage_estimate_usd": 0.027609010000000003,
+      "quality": {
+        "constraint_compliance": {
+          "confidence_bounds": 1.0,
+          "confidence_never_lowered": 1.0,
+          "identifier_suppression": 1.0,
+          "immutable_archived_confidence": 1.0,
+          "improvement_limit_and_distinctness": 1.0,
+          "secondary_limit_and_distinctness": 1.0,
+          "taxonomy_membership": 1.0
+        },
+        "evaluated_records": 5,
+        "exact_match_fraction_of_evaluated": 0.0,
+        "expected_records": 5,
+        "field_accuracy": {
+          "cause_explanation": 0.2,
+          "cause_group": 0.6,
+          "confidence": 1.0,
+          "confidence_basis": 1.0,
+          "impact": 1.0,
+          "improvements": 0.2,
+          "prevention": 1.0,
+          "prevention_reason": 0.4,
+          "primary_route": 1.0,
+          "resolution": 1.0,
+          "secondary_routes": 0.2
+        },
+        "fully_correct_fraction_of_all_records": 0.0,
+        "grading_note": "Deterministic synthetic gold checks. Free-form newly generated confidence explanations are checked for presence and canary suppression, not independently judged for semantic truth.",
+        "not_evaluated_records": 0,
+        "passed_records": 0,
+        "profile": "complex-v2",
+        "scenario_breakdown": {
+          "corrected_goal": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "direct_need": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "ivr_distraction": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "negated_intent": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "stale_candidate": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          }
+        }
+      },
+      "semantic_status": "needs_review",
+      "gate": {
+        "checks": {
+          "all_records_evaluated": true,
+          "all_records_processed": true,
+          "archived_confidence_preserved": true,
+          "confidence_compliance": true,
+          "no_identifier_canaries": true,
+          "primary_accuracy": true
+        },
+        "status": "passed"
+      },
+      "target_metrics": [
+        {
+          "alias": "target-1",
+          "allocated_rpm": 100,
+          "allocated_tpm": 100000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 7.433975164000003,
+          "http_200_latency_p95_seconds": 7.433975164000003,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "100000",
+              "100"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-2",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 8.211193155000274,
+          "http_200_latency_p95_seconds": 8.211193155000274,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-3",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 7.225905766000324,
+          "http_200_latency_p95_seconds": 7.225905766000324,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-4",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 9.70849797100027,
+          "http_200_latency_p95_seconds": 9.70849797100027,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-5",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 7.93968308500007,
+          "http_200_latency_p95_seconds": 7.93968308500007,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        }
+      ],
+      "admission": {
+        "attempts": 5,
+        "completed": 5,
+        "expected": 5,
+        "feedback_updates": 10,
+        "invalid_budget_headers": 0,
+        "reserved_usd": 0.06719817500000001,
+        "stage": "reactive-warmup"
+      }
+    },
+    {
+      "arm": "adaptive-warmup",
+      "status": "succeeded",
+      "started_at": "2026-11-10T22:38:04.237693+00:00",
+      "ended_at": "2026-11-10T22:38:11.195591+00:00",
+      "record_count": 5,
+      "succeeded": 5,
+      "failed": 0,
+      "pending": 0,
+      "elapsed_seconds": 6.957898,
+      "completed_records_per_minute": 43.11646994537718,
+      "http_attempts": 5,
+      "errors_429": 0,
+      "errors_by_code": {},
+      "router_wait_seconds": 0.0,
+      "input_tokens": 152934,
+      "output_tokens": 3141,
+      "cached_tokens": 151936,
+      "reasoning_tokens": 2368,
+      "usage_reports": 5,
+      "usage_complete": true,
+      "http_attempted_record_count": 5,
+      "http_200_latency_mean_seconds": 5.281710739200025,
+      "http_200_latency_p50_seconds": 5.13209119000021,
+      "http_200_latency_p95_seconds": 6.044063620199995,
+      "http_200_latency_measured_count": 5,
+      "http_attempt_latency_mean_seconds": 5.281710739200025,
+      "http_attempt_latency_measured_count": 5,
+      "successful_record_elapsed_mean_seconds": 5.7062636,
+      "successful_record_elapsed_measured_count": 5,
+      "all_record_elapsed_mean_seconds": 5.7062636,
+      "record_elapsed_measured_count": 5,
+      "record_elapsed_p95_seconds": 6.3948735999999995,
+      "backlog_wait_mean_seconds": 0.200114,
+      "queue_to_completion_mean_seconds": 5.9063776,
+      "queue_to_completion_p95_seconds": 6.5719748,
+      "queue_to_completion_measured_count": 5,
+      "priced_usage_estimate_usd": 0.011362889999999999,
+      "quality": {
+        "constraint_compliance": {
+          "confidence_bounds": 1.0,
+          "confidence_never_lowered": 1.0,
+          "identifier_suppression": 1.0,
+          "immutable_archived_confidence": 1.0,
+          "improvement_limit_and_distinctness": 1.0,
+          "secondary_limit_and_distinctness": 1.0,
+          "taxonomy_membership": 1.0
+        },
+        "evaluated_records": 5,
+        "exact_match_fraction_of_evaluated": 0.0,
+        "expected_records": 5,
+        "field_accuracy": {
+          "cause_explanation": 0.2,
+          "cause_group": 0.6,
+          "confidence": 1.0,
+          "confidence_basis": 1.0,
+          "impact": 1.0,
+          "improvements": 0.2,
+          "prevention": 1.0,
+          "prevention_reason": 0.4,
+          "primary_route": 1.0,
+          "resolution": 1.0,
+          "secondary_routes": 0.4
+        },
+        "fully_correct_fraction_of_all_records": 0.0,
+        "grading_note": "Deterministic synthetic gold checks. Free-form newly generated confidence explanations are checked for presence and canary suppression, not independently judged for semantic truth.",
+        "not_evaluated_records": 0,
+        "passed_records": 0,
+        "profile": "complex-v2",
+        "scenario_breakdown": {
+          "corrected_goal": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "direct_need": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "ivr_distraction": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "negated_intent": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          },
+          "stale_candidate": {
+            "evaluated": 1,
+            "passed": 0,
+            "records": 1
+          }
+        }
+      },
+      "semantic_status": "needs_review",
+      "gate": {
+        "checks": {
+          "all_records_evaluated": true,
+          "all_records_processed": true,
+          "archived_confidence_preserved": true,
+          "confidence_compliance": true,
+          "no_identifier_canaries": true,
+          "primary_accuracy": true
+        },
+        "status": "passed"
+      },
+      "target_metrics": [
+        {
+          "alias": "target-1",
+          "allocated_rpm": 100,
+          "allocated_tpm": 100000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 5.121558764999918,
+          "http_200_latency_p95_seconds": 5.121558764999918,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "100000",
+              "100"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-2",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 6.137223182000071,
+          "http_200_latency_p95_seconds": 6.137223182000071,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-3",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 4.346255186000235,
+          "http_200_latency_p95_seconds": 4.346255186000235,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-4",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 5.671425372999693,
+          "http_200_latency_p95_seconds": 5.671425372999693,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        },
+        {
+          "alias": "target-5",
+          "allocated_rpm": 50,
+          "allocated_tpm": 50000,
+          "error_indications": {},
+          "errors_429": 0,
+          "http_200_latency_mean_seconds": 5.13209119000021,
+          "http_200_latency_p95_seconds": 5.13209119000021,
+          "http_attempts": 1,
+          "observed_rate_limits": [
+            [
+              "50000",
+              "50"
+            ]
+          ],
+          "responses_200": 1
+        }
+      ],
+      "admission": {
+        "attempts": 5,
+        "completed": 5,
+        "expected": 5,
+        "feedback_updates": 10,
+        "invalid_budget_headers": 0,
+        "reserved_usd": 0.06719817500000001,
+        "stage": "adaptive-warmup"
+      }
+    }
+  ],
+  "cost_note": "Reported token usage including warm-ups at configured rates, not an invoice; infrastructure and unreported usage are excluded.",
+  "latency_note": "HTTP means measure attempts. Record processing starts when a record first becomes ready at the queue head; queue-to-completion starts at arm enqueue. Means are not job elapsed/count.",
+  "limitations": [
+    "One paired experiment; no sustained throughput or zero-429 guarantee.",
+    "Both arms share the same 300K allocation; historical V4 used 150K per arm.",
+    "Warm-ups, service conditions and cache warmth do not establish randomized experimental equivalence.",
+    "Unchanged gold checks remain independent of successful processing."
+  ]
+}

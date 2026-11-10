@@ -131,3 +131,16 @@ source/wheel archive verification. The Python dependency audit passed.
 A full npm advisory audit was rate-limited with HTTP429 by the configured
 package feed; no clean full npm audit is claimed. That development-tool
 request is unrelated to the Azure inference429 counts in the pilot evidence.
+
+V5 tests pre-dispatch token/request reservations, shared-queue work assignment,
+per-target exclusivity, cooldown/retry idempotence, finite header feedback,
+temporary-limit recovery, original deadlines, warm-up accounting, and
+management-plane topology drift. A full 520-record four-attempt ledger is
+serialized and checked below the scheduler's 1 MiB state limit with headroom.
+
+Exact-duration fixtures verify arithmetic means and their denominators
+independently of elapsed job time. Paid-response tests cover deadline and
+cancellation reconciliation without another SDK call. Website tests distinguish
+pending from final averages and refuse claims based on missing records,
+inconsistent sample counts, or changed five-target allocations. None of these
+fixtures is published as measured Azure performance.

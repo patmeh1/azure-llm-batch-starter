@@ -14,6 +14,10 @@ from .state import State
 from .telemetry import elapsed_between
 
 
+def mean(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
+
+
 def percentile(values: list[float], fraction: float) -> float | None:
     if not values:
         return None
@@ -72,6 +76,9 @@ def summarize_documents(
         for item in attempts
         if item.get("status_code") == 200 and item.get("duration_seconds") is not None
     ]
+    attempt_latencies = [
+        item["duration_seconds"] for item in attempts if item.get("duration_seconds") is not None
+    ]
     rate_errors = sum(item.get("status_code") == 429 for item in events)
     observed_limits = sorted(
         {
@@ -111,6 +118,16 @@ def summarize_documents(
         item["elapsed_seconds"]
         for item in records
         if item["status"] == "succeeded" and item.get("elapsed_seconds") is not None
+    ]
+    queue_durations = [
+        item["queue_to_completion_seconds"]
+        for item in records
+        if item.get("queue_to_completion_seconds") is not None
+    ]
+    initial_waits = [
+        item["backlog_wait_seconds"]
+        for item in records
+        if item.get("backlog_wait_seconds") is not None
     ]
     buckets: dict[str, dict[str, int]] = {}
     for item in attempts:
@@ -166,6 +183,10 @@ def summarize_documents(
         "cached_tokens": cache_tokens,
         "reasoning_tokens": reasoning,
         "http_200_latency_p50_seconds": percentile(successful_latencies, 0.5),
+        "http_200_latency_mean_seconds": mean(successful_latencies),
+        "http_200_latency_measured_count": len(successful_latencies),
+        "http_attempt_latency_mean_seconds": mean(attempt_latencies),
+        "http_attempt_latency_measured_count": len(attempt_latencies),
         "http_200_latency_p95_seconds": percentile(successful_latencies, 0.95),
         "successful_record_elapsed_mean_seconds": sum(good_durations) / len(good_durations)
         if good_durations
@@ -174,6 +195,13 @@ def summarize_documents(
         if record_durations
         else None,
         "record_elapsed_measured_count": len(record_durations),
+        "successful_record_elapsed_measured_count": len(good_durations),
+        "record_elapsed_p95_seconds": percentile(record_durations, 0.95),
+        "queue_to_completion_mean_seconds": mean(queue_durations),
+        "queue_to_completion_p95_seconds": percentile(queue_durations, 0.95),
+        "queue_to_completion_measured_count": len(queue_durations),
+        "backlog_wait_mean_seconds": mean(initial_waits),
+        "http_attempted_record_count": len({item.get("record_id") for item in attempts}),
         "priced_usage_estimate_usd": priced_cost,
         "cost_note": "Configured retail rates applied to reported usage, not an Azure invoice or full infrastructure cost.",
         "label_accuracy": sum(correctness) / len(correctness) if correctness else None,

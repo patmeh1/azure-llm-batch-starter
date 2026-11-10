@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const v3 = JSON.parse(readFileSync('docs/v3-results.json', 'utf8'));
 const v4 = JSON.parse(readFileSync('docs/v4-results.json', 'utf8'));
+const v5 = JSON.parse(readFileSync('docs/v5-results.json', 'utf8'));
 const routes = [
   ['Overview', 'index.html'],
   ['Compare versions', 'comparison.html'],
@@ -10,6 +11,7 @@ const routes = [
   ['V2 complexity', 'v2.html'],
   ['V3 GPT-5 mini', 'v3.html'],
   ['V4 multi-deployment', 'v4.html'],
+  ['V5 smart routing', 'v5.html'],
   ['What works', 'approach.html'],
   ['Resources', 'resources.html'],
   ['Methodology', 'methodology.html'],
@@ -54,9 +56,11 @@ test('comparison clearly distinguishes GPT builds, workload variables, and measu
   await expect(identity.getByRole('cell').nth(1)).toContainText('GPT-5.4 mini');
   await expect(identity.getByRole('cell').nth(2)).toContainText('GPT-5 mini');
   await expect(identity.getByRole('cell').nth(2)).toContainText('2025-08-07');
-  await expect(identity.getByRole('cell')).toHaveCount(4);
+  await expect(identity.getByRole('cell')).toHaveCount(5);
   await expect(identity.getByRole('cell').nth(3)).toContainText('GPT-5 mini');
   await expect(identity.getByRole('cell').nth(3)).toContainText('2025-08-07');
+  await expect(identity.getByRole('cell').nth(4)).toContainText('GPT-5 mini');
+  await expect(identity.getByRole('cell').nth(4)).toContainText('2025-08-07');
   await expect(setup.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Service allocation', exact: true }) }).getByRole('cell').nth(3)).toContainText('150K TPM / 150 RPM in each arm');
   for (const label of ['Prompt workload', 'Input volume', 'Dataset size', 'Output contract', 'Processing modes', 'Service allocation', 'Client pacing / retries', 'Generation settings', 'Azure SKU / geography', 'Actual Azure Batch API']) {
     await expect(setup.getByRole('rowheader', { name: label, exact: true })).toBeVisible();
@@ -66,6 +70,8 @@ test('comparison clearly distinguishes GPT builds, workload variables, and measu
   await expect(outcomes).toContainText('14.38 s');
   await expect(outcomes).toContainText('Failed in all three modes.');
   await expect(outcomes).toContainText('Simple category label only; not the complex v2/v3 rubric.');
+  await expect(outcomes).toContainText('Average successful HTTP call');
+  await expect(outcomes).toContainText('Average enqueue-to-record completion');
   if (!v3.results_final) await expect(outcomes).toContainText('No final sequential-versus-grouped duration comparison.');
   await expect(page.getByText('Do not attribute the differences to the GPT model alone.', { exact: false })).toBeVisible();
 });
@@ -114,6 +120,32 @@ test('v4 publishes the actual matched-quota outcomes without hiding failures', a
   await page.screenshot({ path: testInfo.outputPath('v4-results-desktop.png') });
 });
 
+test('v5 separates measured averages from job time and preserves pending states', async ({ page, request }, testInfo) => {
+  await page.goto('/v5.html');
+  await expect(page.locator('#v5')).toHaveAttribute('data-results-final', String(v5.results_final));
+  await expect(page.locator('#v5-notice time')).toHaveAttribute('datetime', v5.observed_at);
+  const outcomes = page.getByRole('region', { name: 'V5 outcomes and average request time' });
+  await expect(outcomes.locator('tbody tr')).toHaveCount(2);
+  await expect(outcomes).toContainText('Average HTTP 200');
+  await expect(outcomes).toContainText('Average successful record');
+  await expect(page.locator('#v5-latency')).toContainText('Explicit denominators.');
+  if (v5.results_final) {
+    for (const [index, stage] of v5.stages.entries()) {
+      const cells = outcomes.locator('tbody tr').nth(index).getByRole('cell');
+      await expect(cells.nth(0)).toHaveText(`${stage.succeeded} / 520`);
+      await expect(cells.nth(1)).toHaveText(String(stage.failed));
+      const mean = stage.http_200_latency_mean_seconds;
+      if (mean !== null) await expect(cells.nth(5)).toHaveText(`${mean.toFixed(2)} s`);
+    }
+    await expect(page.getByRole('region', { name: 'V5 per-target observations' }).locator('tbody tr')).toHaveCount(10);
+  } else {
+    await expect(outcomes).toContainText('Not final');
+    await expect(page.locator('#v5-notice')).toContainText('incomplete');
+  }
+  expect(await (await request.get('data/v5-results.json')).json()).toEqual(v5);
+  await page.screenshot({ path: testInfo.outputPath('v5-request-averages.png'), fullPage: true });
+});
+
 test('theme survives page navigation and browser back without storage', async ({ page }, testInfo) => {
   await page.goto('/index.html?scoutTheme=light');
   await page.getByRole('button', { name: 'Switch to dark theme' }).click();
@@ -148,7 +180,7 @@ test('mobile tabs remain reachable and comparison tables scroll without document
 });
 
 test('old shared hash links redirect to their new dedicated pages', async ({ page }) => {
-  for (const [hash, file] of [['v1', 'v1.html'], ['v2', 'v2.html'], ['v3', 'v3.html'], ['v4', 'v4.html'], ['comparisons', 'comparison.html'], ['resources', 'resources.html'], ['start', 'resources.html']]) {
+  for (const [hash, file] of [['v1', 'v1.html'], ['v2', 'v2.html'], ['v3', 'v3.html'], ['v4', 'v4.html'], ['v5', 'v5.html'], ['comparisons', 'comparison.html'], ['resources', 'resources.html'], ['start', 'resources.html']]) {
     await page.goto(`/?scoutTheme=light#${hash}`);
     await expect(page.locator('body')).toHaveAttribute('data-page', file);
     expect(new URL(page.url()).pathname).toBe(`/${file}`);

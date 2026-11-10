@@ -1,8 +1,8 @@
       <section class="hero" aria-labelledby="story-title">
         <div>
           <p class="eyebrow">A practical study of Azure LLM processing</p>
-          <h1 id="story-title">Two GPT models.<br>Four versions.<br><span>One scaling story.</span></h1>
-          <p class="lede">V1 tested capacity and pacing. V2 made the prompt harder. V3 switched to GPT-5 mini and five client groups. V4 asks the next question: does splitting the same quota across three deployments help?</p>
+          <h1 id="story-title">Two GPT models.<br>Five versions.<br><span>One scaling story.</span></h1>
+          <p class="lede">V1 tested capacity and pacing. V2 made the prompt harder. V3 switched to GPT-5 mini. V4 split a fixed quota across targets. V5 adds quota-aware scheduling on five deployments&mdash;and measures average request completion, not just total job time.</p>
           <p><strong>The lesson: faster processing, fewer 429s, and correct answers are three different goals.</strong></p>
           <div class="actions">
             <a class="button primary" href="comparison.html">Compare all variables &rarr;</a>
@@ -13,7 +13,7 @@
           <p class="kicker">The models, explicitly</p>
           <h2>Application version &ne; GPT version</h2>
           <div class="model-entry"><span class="version">V1 + V2</span><strong>GPT-5.4 mini</strong><code>@@MODEL_54_VERSION@@</code><p>Same model build. Different prompt complexity and test configuration.</p></div>
-          <div class="model-entry"><span class="version">V3 + V4</span><strong>GPT-5 mini</strong><code>@@MODEL_5_VERSION@@</code><p>The v2 prompt stays unchanged. V4 compares one 150K deployment with three 50K deployments in a fresh Azure-hosted pilot.</p></div>
+          <div class="model-entry"><span class="version">V3 + V4 + V5</span><strong>GPT-5 mini</strong><code>@@MODEL_5_VERSION@@</code><p>The v2 prompt stays unchanged. V5 compares reactive and quota-aware policies using the same five-target 300K pool.</p></div>
           <p class="small">Both use US Data Zone inference. This is not a controlled model-ranking experiment.</p>
         </aside>
       </section>
@@ -42,6 +42,11 @@
             <span class="chapter-number">04</span>
             <div><p class="version">V4 &middot; GPT-5 MINI &middot; MATCHED TOTAL QUOTA</p><h3>One deployment versus three. Not three times the capacity.</h3><p>@@V4_STORY@@</p><p class="finding-verdict"><strong>Observed:</strong> @@V4_VERDICT@@ Both arms use five workers, the same prompt and records, and 150K TPM total.</p></div>
             <a class="button" href="v4.html">V4 evidence &rarr;</a>
+          </article>
+          <article class="finding">
+            <span class="chapter-number">05</span>
+            <div><p class="version">V5 &middot; FIVE TARGETS &middot; 520 RECORDS PER ARM</p><h3>Measure useful throughput and the actual average wait.</h3><p>@@V5_STORY@@</p><p class="finding-verdict">@@V5_VERDICT@@ HTTP, record processing, and queue-to-completion are distinct measurements.</p></div>
+            <a class="button" href="v5.html">V5 evidence &rarr;</a>
           </article>
         </div>
       </section>

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse
@@ -12,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .prompt_assets import read_prompt
 
 CATEGORIES = ["shipping", "billing", "access", "product", "other"]
-WORKFLOW_VERSION = "4.0"
+WORKFLOW_VERSION = "5.0"
 DEFAULT_PROMPT = read_prompt("simple-v1.md")
 DEFAULT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -30,6 +31,7 @@ class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     endpoint: str = ""
+    model_resource_id: str | None = None
     online_deployment: str = "online"
     batch_deployment: str = "batch"
     model_name: str = "gpt-5.4-mini"
@@ -73,6 +75,15 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_settings(self) -> Settings:
+        if self.model_resource_id and not re.fullmatch(
+            r"/subscriptions/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}"
+            r"/resourceGroups/[A-Za-z0-9_.()-]{1,90}/providers/Microsoft\.CognitiveServices/accounts/[A-Za-z0-9-]+",
+            self.model_resource_id,
+            re.IGNORECASE,
+        ):
+            raise ValueError(
+                "model_resource_id must be an Azure Cognitive Services account resource ID"
+            )
         if self.endpoint:
             parsed = urlparse(self.endpoint)
             host = parsed.hostname or ""
@@ -121,6 +132,8 @@ class Settings(BaseModel):
 
     def fingerprint(self) -> str:
         excluded = {"scheduler_endpoint", "task_hub"}
+        if self.model_resource_id is None:
+            excluded.add("model_resource_id")
         if self.observation_profile == "bounded-burst":
             excluded.add("observation_profile")
         return hashlib.sha256(self.model_dump_json(exclude=excluded).encode()).hexdigest()
@@ -150,6 +163,7 @@ def load_settings(path: Path | None = None, **overrides: Any) -> Settings:
     data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8")) if path else {}
     mapping = {
         "AZURE_OPENAI_ENDPOINT": "endpoint",
+        "AZURE_OPENAI_RESOURCE_ID": "model_resource_id",
         "AZURE_OPENAI_ONLINE_DEPLOYMENT": "online_deployment",
         "AZURE_OPENAI_BATCH_DEPLOYMENT": "batch_deployment",
         "AZURE_STORAGE_ACCOUNT": "storage_account",

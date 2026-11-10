@@ -46,7 +46,7 @@ def test_build_contains_real_evidence_and_only_allowlisted_assets(site_root):
         titles.add(re.search(r"<title>(.*?)</title>", page)[1])
         assert "@@" not in page
     assert len(titles) == len(site.PAGES)
-    assert len(list((output / "data").glob("*.json"))) == 4
+    assert len(list((output / "data").glob("*.json"))) == 6
     assert len(list((output / "prompts").glob("*.md"))) == 4
     assert not (output / ".azure").exists()
     assert not (output / "outputs").exists()
@@ -171,6 +171,10 @@ def test_comparison_table_explains_model_identity_and_confounded_variables(site_
     assert "1/13 in each mode." in page
     assert "145&ndash;153" in page
     assert "Final comparison withheld" in page
+    assert "V4 / MATCHED QUOTA" in page
+    assert "150K TPM / 150 RPM in each arm" in page
+    assert 'colspan="5"' in page
+    assert "Three deployments" in page
 
 
 def test_final_comparison_does_not_keep_stale_incomplete_claims(site_root):
@@ -228,3 +232,68 @@ def test_interrupted_v3_does_not_claim_a_running_job():
     assert "Run interrupted" in result["V3_STATUS"]
     assert "no active runner was observed" in result["V3_NOTICE"]
     assert "Nov 09, 2026 at 22:05 UTC" in result["V3_FRESHNESS"]
+
+
+def test_v4_pending_evidence_withholds_final_metrics():
+    value = json.loads((ROOT / "docs" / "v4-results.json").read_text())
+    value.update(
+        results_final=False,
+        execution_status="running",
+        stages=[],
+        reported_model_usage_estimate_usd=None,
+    )
+    result = site.render_v4(value)
+    assert result["V4_FINAL"] == "false"
+    assert result["V4_ROWS"].count("Not final") == 2
+    assert "&mdash; / 65" in result["V4_ROWS"]
+    assert result["V4_WALL"] == "Not final"
+    assert result["V4_COST"] == "Not available"
+    assert "not measured, not zero" in result["V4_NOTICE"]
+
+
+@pytest.mark.parametrize("field", ["allocated_tpm", "allocated_rpm"])
+def test_v4_cannot_claim_matched_quota_after_allocation_changes(field):
+    value = json.loads((ROOT / "docs" / "v4-results.json").read_text())
+    value["stages"][1]["target_metrics"][0][field] *= 2
+    with pytest.raises(ValueError, match="matched aggregate quota"):
+        site.render_v4(value)
+
+
+def test_v4_requires_reconciled_target_metrics_and_both_terminal_arms():
+    value = json.loads((ROOT / "docs" / "v4-results.json").read_text())
+    altered = copy.deepcopy(value)
+    altered["stages"][0]["target_metrics"][0]["http_attempts"] += 1
+    with pytest.raises(ValueError, match="attempt counts do not reconcile"):
+        site.render_v4(altered)
+    value["stages"].pop()
+    with pytest.raises(ValueError, match="both arms"):
+        site.render_v4(value)
+
+
+def test_v4_cannot_present_partial_failure_as_processing_success():
+    value = json.loads((ROOT / "docs" / "v4-results.json").read_text())
+    value["processing_status"] = "succeeded"
+    with pytest.raises(ValueError, match="processing status contradicts"):
+        site.render_v4(value)
+
+
+def test_v4_does_not_present_a_faster_failed_run_as_a_speedup():
+    value = json.loads((ROOT / "docs" / "v4-results.json").read_text())
+    value["stages"][0].update(succeeded=64, failed=1, elapsed_seconds=1000)
+    value["stages"][1]["elapsed_seconds"] = 1
+    result = site.render_v4(value)
+    assert "shorter failed run is not a scaling improvement" in result["V4_VERDICT"]
+    assert "x the validated-record throughput" not in result["V4_VERDICT"]
+
+
+def test_v4_cannot_silently_change_model_or_prompt(site_root):
+    path = site_root / "docs" / "v4-results.json"
+    value = json.loads(path.read_text())
+    altered = copy.deepcopy(value)
+    altered["model"]["model_name"] = "gpt-5.4-mini"
+    with pytest.raises(ValueError, match="pilot narrative"):
+        site.render_v4(altered)
+    value["workload_profile"]["prompt_bundle_sha256"] = "not-the-v2-prompt"
+    path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="v2/v3/v4 bundle hashes"):
+        site.build_site(site_root)

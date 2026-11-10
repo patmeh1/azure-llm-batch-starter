@@ -13,7 +13,7 @@ import typer
 from azure.core.exceptions import AzureError
 from filelock import Timeout as LockTimeout
 
-from .azure_state import AzureState, create_cloud_run
+from .azure_state import AzureState, create_cloud_run, valid_run_id
 from .config import load_settings
 from .demo import seed_demo
 from .pipeline import run_pipeline
@@ -271,6 +271,85 @@ def cancel(
         store.close()
 
 
+@app.command("v4-run")
+def v4_run(
+    scenario: Annotated[Path, typer.Option("--scenario")],
+    config: ConfigPath = None,
+    yes: bool = False,
+) -> None:
+    """Preview or start the matched-quota durable single-versus-three deployment experiment."""
+    from .multi_deployment import MultiDeploymentSpec, plan_multi
+
+    spec = MultiDeploymentSpec.model_validate_json(scenario.read_text(encoding="utf-8"))
+    settings = load_settings(config)
+    plan = plan_multi(spec, settings)
+    if not yes:
+        emit(plan)
+        return
+    emit(plan, err=True)
+    access = SchedulerAccess(settings)
+    try:
+        emit(
+            {
+                "run_id": access.start_multi(spec),
+                "status": "queued",
+                "note": "The workflow executes in Azure; use v4-status with this same ID.",
+            }
+        )
+    finally:
+        access.close()
+
+
+@app.command("v4-status")
+def v4_status(
+    run_id: str,
+    config: ConfigPath = None,
+    wait: bool = False,
+    timeout: int = 1800,
+    output: Path = Path("outputs/v4"),
+) -> None:
+    """Monitor the existing Azure-hosted v4 experiment, saving an operational report."""
+    if not 1 <= timeout <= 86400:
+        raise ValueError("Observer timeout must be 1..86400 seconds; it does not cancel Azure work")
+    access = SchedulerAccess(load_settings(config))
+    deadline = time.monotonic() + timeout
+    directory = output / run_id
+    valid_run_id(run_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    try:
+        while True:
+            run = access.get_run(run_id)
+            if run["mode"] != "multi-deployment":
+                raise ValueError("This is not a v4 multi-deployment experiment")
+            report = access.detail(run_id)
+            (directory / "summary.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+            emit(
+                {
+                    "run_id": run_id,
+                    "status": run["status"],
+                    "runtime_status": run["runtime_status"],
+                    "progress": report.get("multi_deployment_progress"),
+                    "workers": report.get("worker_progress"),
+                    "acceptance_status": report.get("acceptance_status"),
+                }
+            )
+            if run["status"] not in {"queued", "pending", "running"}:
+                raise typer.Exit(0 if report.get("acceptance_status") == "passed" else 1)
+            if not wait or time.monotonic() >= deadline:
+                raise typer.Exit(2)
+            time.sleep(min(30, max(0, deadline - time.monotonic())))
+    finally:
+        access.close()
+
+
+@app.command("v4-export")
+def v4_export(report: Path, output: Path) -> None:
+    """Export a saved v4 report and bounded synthetic output samples without Azure account context."""
+    from .multi_deployment import export_multi
+
+    emit(export_multi(report, output))
+
+
 @app.command("v3-config")
 def v3_config(
     base_config: Path,
@@ -495,7 +574,8 @@ def azure_cancel(
 ) -> None:
     if not yes:
         typer.confirm(
-            "Request cancellation of this cloud run and its remote Batch jobs?", abort=True
+            "Request cancellation of this cloud run? In-flight work may still complete.",
+            abort=True,
         )
     if transport not in {"scheduler", "storage"}:
         raise ValueError("transport must be scheduler or storage")

@@ -151,6 +151,7 @@ def summarize_documents(
             )
         ),
         "retry_wait_seconds": durations.get("retry_wait", 0),
+        "router_wait_seconds": durations.get("router_wait", 0),
         "stage_aggregate_seconds": dict(durations),
         "stage_timing_note": "Aggregates may overlap; never add them to derive wall-clock duration.",
         "input_tokens": input_tokens,

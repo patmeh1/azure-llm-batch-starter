@@ -19,13 +19,13 @@ PAGES = {
     "index.html": (
         "overview",
         "Overview",
-        "Two GPT models, three versions",
-        "The story of capacity, prompt complexity, and model choice across three synthetic Azure LLM experiments.",
+        "Two GPT models, four versions",
+        "The story of capacity, prompt complexity, and matched-quota routing across four synthetic Azure LLM experiments.",
     ),
     "comparison.html": (
         "comparison",
         "Compare versions",
-        "V1 vs V2 vs V3 comparison",
+        "V1 vs V2 vs V3 vs V4 comparison",
         "Compare exact GPT models, prompt workloads, quotas, pacing, processing modes, accuracy, costs, and evidence status.",
     ),
     "v1.html": (
@@ -45,6 +45,12 @@ PAGES = {
         "V3 GPT-5 mini",
         "V3: GPT-5 mini grouped requests",
         "Timestamped evidence for 1,700 sequential requests versus five client-side groups at 150K TPM.",
+    ),
+    "v4.html": (
+        "v4",
+        "V4 multi-deployment",
+        "V4: one deployment versus three",
+        "GPT-5 mini with unchanged complex prompts: one 150K deployment versus three 50K deployments, executed durably in Azure.",
     ),
     "approach.html": (
         "approach",
@@ -70,6 +76,8 @@ DATA_FILES = {
     "v2-results.json": "complex-v2-results.json",
     "v3-results.json": "v3-results.json",
     "v3-partial-output-sample.json": "v3-partial-output-sample.json",
+    "v4-results.json": "v4-results.json",
+    "v4-output-samples.json": "v4-output-samples.json",
 }
 PROMPTS = ("simple-v1.md", "complex-system-v2.md", "complex-taxonomy-v2.md", "complex-user-v2.md")
 PRIVATE_KEYS = {
@@ -324,7 +332,199 @@ def render_v3(value: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def compare_versions(v1: dict[str, Any], v2: dict[str, Any], v3: dict[str, Any]) -> dict[str, str]:
+def validate_v4(value: dict[str, Any]) -> None:
+    if not isinstance(value["results_final"], bool):
+        raise ValueError("V4 requires an explicit results_final boolean")
+    if value["results_final"] != (value["execution_status"] == "completed"):
+        raise ValueError("V4 final flag contradicts its execution state")
+    model, spec = value["model"], value["specification"]
+    if (
+        model["model_name"] != "gpt-5-mini"
+        or model["model_version"] != "2025-08-07"
+        or model["max_output_tokens"] != 2048
+        or model["reasoning_effort"] != "low"
+        or value["workload_profile"]["batch_api_used"] is not False
+        or spec["count"] != 65
+        or spec["workers"] != 5
+        or spec["max_attempts"] != 4
+        or value["active_aggregate_tpm_per_arm"] != 150000
+        or value["active_aggregate_rpm_per_arm"] != 150
+    ):
+        raise ValueError("Review the v4 matched-quota pilot narrative before changing its setup")
+    arms = [stage["arm"] for stage in value["stages"]]
+    if len(arms) != len(set(arms)) or set(arms) - {"single", "pool"}:
+        raise ValueError("Invalid v4 experiment arms")
+    if value["results_final"] and set(arms) != {"single", "pool"}:
+        raise ValueError("Final v4 evidence needs both arms")
+    if value["results_final"]:
+        expected_status = (
+            "needs_attention" if any(stage["failed"] for stage in value["stages"]) else "succeeded"
+        )
+        if value["processing_status"] != expected_status:
+            raise ValueError("V4 processing status contradicts its record outcomes")
+    for stage in value["stages"]:
+        if stage["record_count"] != spec["count"]:
+            raise ValueError("V4 stage size differs from the pilot")
+        ratio(stage)
+        if value["results_final"]:
+            if stage["pending"] != 0 or stage["status"] not in {"succeeded", "partial_failure"}:
+                raise ValueError("Final v4 evidence has unreconciled records")
+            if not number(stage["elapsed_seconds"], optional=False):
+                raise ValueError("Final v4 duration must be positive")
+        allocations = stage["target_metrics"]
+        expected = 1 if stage["arm"] == "single" else 3
+        if (
+            len(allocations) != expected
+            or sum(target["allocated_tpm"] for target in allocations) != 150000
+            or sum(target["allocated_rpm"] for target in allocations) != 150
+            or any(target["allocated_tpm"] != 150000 // expected for target in allocations)
+            or any(target["allocated_rpm"] != 150 // expected for target in allocations)
+        ):
+            raise ValueError("V4 arms must have matched aggregate quota")
+        for field in ("http_attempts", "errors_429"):
+            if sum(target[field] for target in allocations) != stage[field]:
+                raise ValueError("V4 target attempt counts do not reconcile")
+
+
+def render_v4(value: dict[str, Any]) -> dict[str, str]:
+    validate_v4(value)
+    final = value["results_final"]
+    spec = value["specification"]
+    stages = {stage["arm"]: stage for stage in value["stages"]}
+    labels = {"single": "One deployment", "pool": "Three deployments"}
+    rows, quality_rows, target_rows, latency_rows, token_rows = [], [], [], [], []
+    for arm, label in labels.items():
+        stage = stages.get(arm, {"record_count": spec["count"]})
+        valid = f"{count(stage.get('succeeded'))} / {count(spec['count'])}"
+        elapsed = seconds(stage.get("elapsed_seconds")) if final else "Not final"
+        throughput = (
+            f"{stage['succeeded'] * 60 / stage['elapsed_seconds']:.2f}" if final else "&mdash;"
+        )
+        rows.append(
+            f'<tr><th scope="row">{label}</th><td class="number">{elapsed}</td>'
+            f"<td>{valid}</td><td>{count(stage.get('failed'))}</td>"
+            f"<td>{count(stage.get('http_attempts'))}</td><td>{count(stage.get('errors_429'))}</td>"
+            f"<td>{throughput}</td><td>{money(stage.get('priced_usage_estimate_usd'))}</td></tr>"
+        )
+        quality = stage.get("quality") or {}
+        fields = quality.get("field_accuracy", {})
+        gate = (stage.get("gate") or {}).get("status", "not_evaluated")
+        quality_rows.append(
+            f'<tr><th scope="row">{label}</th><td>{count(quality.get("evaluated_records"))} / {count(spec["count"])}</td>'
+            f"<td>{percent(fields.get('primary_route'))}</td>"
+            f"<td>{percent(fields.get('confidence'))}</td><td>{count(quality.get('passed_records'))} / {count(spec['count'])}</td>"
+            f"<td>{html.escape(gate.replace('_', ' '))}</td></tr>"
+        )
+        latency_rows.append(
+            f'<tr><th scope="row">{label}</th>'
+            + "".join(
+                f"<td>{seconds(stage.get(key)) if final else 'Not final'}</td>"
+                for key in (
+                    "all_record_elapsed_mean_seconds",
+                    "successful_record_elapsed_mean_seconds",
+                    "http_200_latency_p50_seconds",
+                    "http_200_latency_p95_seconds",
+                    "router_wait_seconds",
+                )
+            )
+            + "</tr>"
+        )
+        token_rows.append(
+            f'<tr><th scope="row">{label}</th>'
+            + "".join(
+                f"<td>{count(stage.get(key))}</td>"
+                for key in ("input_tokens", "cached_tokens", "output_tokens", "reasoning_tokens")
+            )
+            + "</tr>"
+        )
+        for target in stage.get("target_metrics", []):
+            limits = (
+                "; ".join(
+                    f"{html.escape(str(tpm))} TPM / {html.escape(str(rpm))} RPM"
+                    for tpm, rpm in target["observed_rate_limits"]
+                )
+                or "Not returned"
+            )
+            target_rows.append(
+                f'<tr><th scope="row">{html.escape(target["alias"])}</th>'
+                f"<td>{count(target['allocated_tpm'])} / {count(target['allocated_rpm'])}</td>"
+                f"<td>{count(target['http_attempts'])}</td><td>{count(target['responses_200'])}</td>"
+                f"<td>{count(target['errors_429'])}</td><td>{limits}</td></tr>"
+            )
+    if final:
+        single, pool = stages["single"], stages["pool"]
+        story = (
+            f"<strong>One deployment:</strong> {count(single['succeeded'])}/65 validated in "
+            f"{seconds(single['elapsed_seconds'])}, {count(single['errors_429'])} HTTP 429 attempts. "
+            f"<strong>Three deployments:</strong> {count(pool['succeeded'])}/65 validated in "
+            f"{seconds(pool['elapsed_seconds'])}, {count(pool['errors_429'])} HTTP 429 attempts."
+        )
+        if (
+            (single["failed"] or pool["failed"])
+            and pool["succeeded"] > single["succeeded"]
+            and pool["errors_429"] < single["errors_429"]
+            and pool["elapsed_seconds"] > single["elapsed_seconds"]
+        ):
+            verdict = (
+                "The pool completed more records and logged fewer 429s, but took longer. "
+                "Full-record completion was not achieved."
+            )
+        elif single["failed"] or pool["failed"]:
+            verdict = (
+                "Not every record succeeded. A shorter failed run is not a scaling improvement."
+            )
+        elif pool["elapsed_seconds"] < single["elapsed_seconds"]:
+            verdict = (
+                f"The pool delivered {single['elapsed_seconds'] / pool['elapsed_seconds']:.2f}x "
+                "the validated-record throughput in this pilot, not a sustained-capacity guarantee."
+            )
+        else:
+            verdict = (
+                f"The pool took {pool['elapsed_seconds'] / single['elapsed_seconds']:.2f}x as long "
+                "at the same aggregate quota. Splitting deployments did not improve this pilot."
+            )
+        notice = (
+            "<strong>Both pilot arms are terminal; processing and quality are separate.</strong>"
+            f"<p>{story}</p><p>{verdict}</p>"
+        )
+        if value["router_reconciliation_required"]:
+            notice += "<p><strong>Some online outcomes remain ambiguous. The routing lease is held for investigation.</strong></p>"
+        status = tag(
+            "Pilot completed; review findings"
+            if value["acceptance_status"] != "passed"
+            else "Pilot completed",
+            "attention" if value["acceptance_status"] != "passed" else "",
+        )
+    else:
+        story = "The Azure-hosted pilot is incomplete. Final durations and the single-versus-pool conclusion are withheld."
+        verdict = "No final scaling conclusion is available."
+        notice = (
+            f"<strong>Pilot incomplete.</strong><p>{story} Dashes mean not measured, not zero.</p>"
+        )
+        status = tag("Pilot incomplete", "incomplete")
+    return {
+        "V4_FINAL": str(final).lower(),
+        "V4_STATUS": status,
+        "V4_NOTICE": notice,
+        "V4_STORY": story,
+        "V4_VERDICT": verdict,
+        "V4_ROWS": "".join(rows),
+        "V4_QUALITY_ROWS": "".join(quality_rows),
+        "V4_TARGET_ROWS": "".join(target_rows),
+        "V4_LATENCY_ROWS": "".join(latency_rows),
+        "V4_TOKEN_ROWS": "".join(token_rows),
+        "V4_DATETIME": html.escape(value["observed_at"], quote=True),
+        "V4_OBSERVED": utc_label(value["observed_at"]),
+        "V4_BUDGET": money(value.get("conservative_all_attempts_estimate_usd"), 2),
+        "V4_COST": money(value.get("reported_model_usage_estimate_usd")),
+        "V4_WALL": seconds(value.get("end_to_end_elapsed_seconds")) if final else "Not final",
+    }
+
+
+def compare_versions(
+    v1: dict[str, Any], v2: dict[str, Any], v3: dict[str, Any], v4: dict[str, Any]
+) -> dict[str, str]:
+    validate_v4(v4)
     experiments = {row["scenario"]: row for row in v1["experiments"]}
     baseline = [
         experiments["compact-sequential-120rpm"],
@@ -363,15 +563,17 @@ def compare_versions(v1: dict[str, Any], v2: dict[str, Any], v3: dict[str, Any])
 
     def row(label: str, cells: list[str]) -> str:
         if len(cells) != 3:
-            raise ValueError("Comparison rows must contain three version values")
+            raise ValueError("Historical comparison rows must contain three version values")
         return (
             f'<tr><th scope="row">{html.escape(label)}</th>'
-            + "".join(f"<td>{cell}</td>" for cell in cells)
+            + "".join(f"<td>{cell}</td>" for cell in [*cells, v4_cells[label]])
             + "</tr>"
         )
 
     def group(title: str) -> str:
-        return f'<tr class="group-row"><td colspan="4"><strong>{html.escape(title)}</strong></td></tr>'
+        return (
+            f'<tr class="group-row"><td colspan="5"><strong>{html.escape(title)}</strong></td></tr>'
+        )
 
     def stage_lines(rows: list[dict[str, Any]], field: str, formatter: Any) -> str:
         labels = ["Sequential", "Parallel, 5 workers", "Service Batch"]
@@ -545,6 +747,66 @@ def compare_versions(v1: dict[str, Any], v2: dict[str, Any], v3: dict[str, Any])
             "Same active taxonomy as v2; transcript variation spans 1,700 records.",
         ),
     ]
+    v4_stages = {stage["arm"]: stage for stage in v4["stages"]}
+
+    def v4_lines(field: str, formatter: Any) -> str:
+        return lines(
+            [
+                f"<strong>{label}:</strong> {formatter(v4_stages.get(arm, {}).get(field))}"
+                for arm, label in (("single", "One deployment"), ("pool", "Three deployments"))
+            ]
+        )
+
+    v4_cells = {
+        "Application release": f'<a href="{REPO}/releases/tag/v0.4.0">0.4.0</a>',
+        "Exact GPT model / build": "<strong>GPT-5 mini</strong><br><code>2025-08-07</code>",
+        "Question being tested": "Does splitting the same total quota across three deployments improve a fresh five-worker run?",
+        "Prompt workload": detail(
+            "<strong>Identical v2 prompt/schema bundle</strong>",
+            "425 routes, 850 examples, and the same eleven-field rules.",
+        ),
+        "Input volume": "Approximately 32.3K&ndash;32.6K estimated tokens/record; same complex taxonomy.",
+        "Dataset size": detail(
+            "65 records per arm",
+            "Five repetitions of 13 scenario families. The 1,700-record scenario is provided, not executed.",
+        ),
+        "Output contract": "The same eleven-field schema and gold-check rules as v2/v3.",
+        "Processing modes": "<strong>Five online workers in each arm.</strong> Single deployment versus a three-deployment router; not Azure Batch API.",
+        "Service allocation": detail(
+            "<strong>150K TPM / 150 RPM in each arm</strong>",
+            "Single: 1 &times; 150K. Pool: 3 &times; 50K. Arms run serially; no extra aggregate quota in the pool arm.",
+        ),
+        "Client pacing / retries": detail(
+            "Shared per-target cooldown; round robin among eligible targets",
+            "No proactive TPM pacing in this observation test. Four total attempts across targets; service headers first, 30-second exponential fallback plus jitter.",
+        ),
+        "Generation settings": "2,048 output tokens; low reasoning; 90-second request timeout.",
+        "Azure SKU / geography": "DataZoneStandard only; US Data Zone; South Central US resources.",
+        "Actual Azure Batch API": "<strong>Not used.</strong> Durable execution hosts online inference; it does not turn requests into a Batch job.",
+        "Execution host": "Azure Durable Functions / Scheduler for both arms; private Blob intents/outcomes and Table metadata.",
+        "Evidence state": detail(
+            tag("Pilot complete" if v4["results_final"] else "Pilot incomplete", "attention"),
+            utc_label(v4["observed_at"]),
+        ),
+        "Full observed duration": v4_lines("elapsed_seconds", seconds)
+        if v4["results_final"]
+        else "Final comparison withheld.",
+        "Schema-valid processing": v4_lines("succeeded", lambda n: count(n) + " / 65"),
+        "HTTP 429 attempts": v4_lines("errors_429", count),
+        "Semantic accuracy": v4_lines(
+            "quality", lambda q: percent((q or {}).get("field_accuracy", {}).get("primary_route"))
+        ),
+        "Semantic acceptance gate": v4_lines(
+            "gate",
+            lambda gate: html.escape((gate or {}).get("status", "not_evaluated").replace("_", " ")),
+        ),
+        "Reported model-usage estimate": v4_lines("priced_usage_estimate_usd", money),
+        "Cache and cost caveat": "Single runs first, pool second after 65 seconds. Cache/service conditions may differ; there is no Batch discount. Infrastructure excluded.",
+        "What demonstrably worked": "Inspect both completed-record and quality gates. Per-target responses, 429s, token use, and durable waits are recorded.",
+        "Main takeaway": "<strong>Deployment count is not aggregate capacity.</strong> A matched test, not a promise of zero 429s.",
+        "Main result": render_v4(v4)["V4_VERDICT"],
+    }
+    v4_cells["Exact GPT model"] = v4_cells["Exact GPT model / build"]
     config = [
         group("01 / Model identity and experiment design"),
         row(
@@ -738,7 +1000,8 @@ def compare_versions(v1: dict[str, Any], v2: dict[str, Any], v3: dict[str, Any])
         '<tr><th scope="col">Variable</th>'
         f'<th scope="col"><span>V1 / BASELINE</span>GPT-5.4 mini<small>{html.escape(model1["model_version"])}</small></th>'
         f'<th scope="col"><span>V2 / COMPLEXITY</span>GPT-5.4 mini<small>{html.escape(model2["version"])}</small></th>'
-        f'<th scope="col"><span>V3 / GROUPED REQUESTS</span>GPT-5 mini<small>{html.escape(model3["model_version"])}</small></th></tr>'
+        f'<th scope="col"><span>V3 / GROUPED REQUESTS</span>GPT-5 mini<small>{html.escape(model3["model_version"])}</small></th>'
+        '<th scope="col"><span>V4 / MATCHED QUOTA</span>GPT-5 mini<small>2025-08-07</small></th></tr>'
     )
     seq, grouped = v3_order
     story = (
@@ -795,6 +1058,11 @@ def resource_cards() -> str:
                     "Release status and downloadable assets",
                 ),
                 (
+                    "V4 matched-quota router",
+                    f"{REPO}/releases/tag/v0.4.0",
+                    "Cloud-hosted single-versus-three deployment pilot",
+                ),
+                (
                     "Azure deployment tutorial",
                     f"{REPO}/blob/main/docs/azure-demo.md",
                     "Sign-in, availability, cost, deployment, and cleanup",
@@ -823,6 +1091,21 @@ def resource_cards() -> str:
                     "V3 partial output examples",
                     "data/v3-partial-output-sample.json",
                     "First three completed sequential records only",
+                ),
+                (
+                    "V4 measured report",
+                    f"{REPO}/blob/main/docs/v4-results.md",
+                    "Matched allocation, per-target observations, and quality",
+                ),
+                (
+                    "V4 complete pilot metrics",
+                    "data/v4-results.json",
+                    "Public aggregate measurements, not raw cloud logs",
+                ),
+                (
+                    "V4 synthetic output examples",
+                    "data/v4-output-samples.json",
+                    "First three output records from each arm",
                 ),
                 (
                     "Measurement definitions",
@@ -885,6 +1168,21 @@ def resource_cards() -> str:
                     f"{REPO}/blob/main/docs/v3-gpt5-mini.md",
                     "Separate deployment, checkpoints, resume, and exports",
                 ),
+                (
+                    "V4 step-by-step guide",
+                    f"{REPO}/blob/main/docs/v4-multi-deployment.md",
+                    "Deploy, preview, start once, monitor, and export",
+                ),
+                (
+                    "V4 65-record pilot scenario",
+                    f"{REPO}/blob/main/scenarios/v4-matched-quota-pilot.json",
+                    "Single and pool arms with matched aggregate quota",
+                ),
+                (
+                    "V4 1,700-record scenario",
+                    f"{REPO}/blob/main/scenarios/v4-matched-quota-1700.json",
+                    "Provided but not executed; review costs before opting in",
+                ),
             ],
         ),
         (
@@ -934,7 +1232,7 @@ def resource_cards() -> str:
                 (
                     "Infrastructure templates",
                     f"{REPO}/tree/main/infra",
-                    "Main environment and additive v3 model template",
+                    "Main environment and additive v3/v4 model templates",
                 ),
                 (
                     "Reusable implementation prompt",
@@ -955,6 +1253,11 @@ def resource_cards() -> str:
                     "Quota and throttling",
                     "https://learn.microsoft.com/azure/foundry/openai/how-to/quota",
                     "Allocation and rate-limit concepts",
+                ),
+                (
+                    "Understanding HTTP 429",
+                    "https://learn.microsoft.com/microsoft-cloud/dev/dev-proxy/concepts/azure-openai-429-token-rate-limit",
+                    "Rate-limit and temporary-capacity indications are not interchangeable",
                 ),
                 (
                     "Performance and latency",
@@ -1049,15 +1352,17 @@ def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
         document = json.loads((root / "docs" / source).read_text(encoding="utf-8"))
         public_only(document, source)
         documents[target] = document
-    v1, v2, v3 = (
-        documents[name] for name in ("v1-results.json", "v2-results.json", "v3-results.json")
+    v1, v2, v3, v4 = (
+        documents[name]
+        for name in ("v1-results.json", "v2-results.json", "v3-results.json", "v4-results.json")
     )
-    if (
-        v3["workload_profile"]["prompt_bundle_sha256"]
+    if any(
+        value["workload_profile"]["prompt_bundle_sha256"]
         != v2["workload_profile"]["prompt_bundle_sha256"]
+        for value in (v3, v4)
     ):
         raise ValueError(
-            "The page's unchanged-prompt comparison requires identical v2/v3 bundle hashes"
+            "The page's unchanged-prompt comparison requires identical v2/v3/v4 bundle hashes"
         )
     experiments = {row["scenario"]: row for row in v1["experiments"]}
     compact = [
@@ -1153,7 +1458,8 @@ def build_site(root: Path = ROOT, output: Path | None = None) -> Path:
         ).decode("ascii"),
         "BUILD_TIME": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         **render_v3(v3),
-        **compare_versions(v1, v2, v3),
+        **render_v4(v4),
+        **compare_versions(v1, v2, v3, v4),
     }
     layout = (root / "site" / "layout.html").read_text(encoding="utf-8")
     pages = {}

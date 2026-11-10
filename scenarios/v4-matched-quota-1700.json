@@ -1,0 +1,9 @@
+{
+  "count": 1700,
+  "seed": 42,
+  "workers": 5,
+  "max_attempts": 4,
+  "cooldown_seconds": 65,
+  "stage_timeout_seconds": 43200,
+  "max_estimated_inference_usd": 200
+}

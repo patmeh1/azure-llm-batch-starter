@@ -10,15 +10,16 @@ navigation without JavaScript.
 | Page | Purpose |
 |---|---|
 | [Overview](https://patmeh1.github.io/azure-llm-batch-starter/) | The story: capacity and pacing, complex-task accuracy, then GPT-5 mini grouping |
-| [Compare versions](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html) | Side-by-side configuration and outcome tables across v1/v2/v3 |
+| [Compare versions](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html) | Side-by-side configuration and outcome tables across v1/v2/v3/v4 |
 | [V1 baseline](https://patmeh1.github.io/azure-llm-batch-starter/v1.html) | GPT-5.4 mini compact, token-stress, and recovery findings |
 | [V2 complexity](https://patmeh1.github.io/azure-llm-batch-starter/v2.html) | Same GPT-5.4 mini build, complex prompts, and failed semantic gates |
 | [V3 GPT-5 mini](https://patmeh1.github.io/azure-llm-batch-starter/v3.html) | Different model, same complex prompt, fixed groups, and incomplete evidence |
+| [V4 matched quota](https://patmeh1.github.io/azure-llm-batch-starter/v4.html) | One 150K target versus three 50K targets, durable cloud execution, and 65-record pilot evidence |
 | [What works](https://patmeh1.github.io/azure-llm-batch-starter/approach.html) | Decisions supported by the evidence, not a model ranking |
 | [Resources](https://patmeh1.github.io/azure-llm-batch-starter/resources.html) | Quickstart, prompts, guides, code, architecture, outputs, and releases |
 | [Methodology](https://patmeh1.github.io/azure-llm-batch-starter/methodology.html) | What was held constant, changed, and cannot be concluded |
 
-V1/v2 explicitly identify **GPT-5.4 mini 2026-03-17**; v3 identifies
+V1/v2 explicitly identify **GPT-5.4 mini 2026-03-17**; v3/v4 identify
 **GPT-5 mini 2025-08-07**. The comparison separates prompt/task complexity,
 record counts, quota, pacing, output ceilings, execution modes, service-Batch
 availability, timing, 429s, quality, and token-cost estimates. It does not merge
@@ -35,6 +36,8 @@ as `/#v2` redirect to their dedicated pages when JavaScript is available.
 | V2 complex-prompt timing and semantic acceptance failures | `docs/complex-v2-results.json` |
 | V3 timestamped progress or terminal results | `docs/v3-results.json` |
 | V3 example outputs | `docs/v3-partial-output-sample.json` |
+| V4 matched-quota pilot | `docs/v4-results.json` |
+| V4 synthetic output examples | `docs/v4-output-samples.json` |
 | Downloadable prompts | The four Markdown files under `prompts` |
 | Illustrative dashboard image | `docs/images/complex-dashboard-demo.png`, labeled SIMULATED |
 
@@ -65,8 +68,8 @@ Open `http://127.0.0.1:8771`. Stop the temporary server before running browser
 tests, which manage their own server on that port.
 
 The builder is Python standard-library code. `site/layout.html` is shared by
-the eight templates in `site/pages`. It reads a fixed allowlist and
-produces only the eight HTML pages, public evidence JSON, Markdown prompts, and an
+the nine templates in `site/pages`. It reads a fixed allowlist and
+produces only the nine HTML pages, public evidence JSON, Markdown prompts, and an
 illustrative image under ignored `_site`. It rejects unexpected output files,
 common private-context fields/values, inconsistent outcome counts, and
 contradictory pending/final flags rather than silently publishing them.
@@ -131,3 +134,19 @@ from progress-only rendering to final timing and quality tables.
 Do not overwrite historical v1/v2 measurements with a different workload.
 If the model, scenario, or scope changes, update the narrative and corresponding
 build assertions deliberately instead of relabeling old results.
+
+## Updating v4 evidence
+
+Monitor the already-submitted Azure root with `v4-status`, then use
+`v4-export` on its saved report. Review the allowlisted `summary.json` and
+`output-samples.json` before copying them to `docs/v4-results.json` and
+`docs/v4-output-samples.json`. Update [the written report](v4-results.md)
+with the same counts, timestamps, quality findings, and limitations.
+
+The builder checks the 65-record, five-worker, pinned-model configuration
+and equal 150K aggregate allocation, plus per-target attempt reconciliation.
+It withholds final durations for incomplete evidence and does not treat a
+shorter failed run as a speedup. Changing the published scenario requires
+deliberately reviewing both narrative and validation assertions. Do not
+overwrite v3's interrupted checkpoint or turn the supplied 1,700-record
+scenario into an executed result.

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import azure.durable_functions as df
 import azure.functions as func
@@ -11,11 +11,226 @@ from llm_batch_starter.azure_state import AzureState, create_cloud_run, valid_ru
 from llm_batch_starter.cloud_activities import CloudActivities
 from llm_batch_starter.complex_workload import configure, generate_complex
 from llm_batch_starter.config import WORKFLOW_VERSION, load_settings
+from llm_batch_starter.multi_cloud import MultiActivities
+from llm_batch_starter.multi_deployment import ARMS, update_router
 from llm_batch_starter.prepare import estimate_cost
 from llm_batch_starter.quota import update_reservations
 from llm_batch_starter.synthetic import generate_dataset
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
+
+
+def v4_time(context: df.DurableOrchestrationContext) -> datetime:
+    value = context.current_utc_datetime
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
+@app.orchestration_trigger(context_name="context")
+def multi_deployment_workflow(context: df.DurableOrchestrationContext):
+    return (yield from multi_deployment_steps(context))
+
+
+def multi_deployment_steps(context: df.DurableOrchestrationContext):
+    options = dict(context.get_input())
+    root = context.instance_id
+    options["run_id"] = root
+    prepared = yield context.call_activity_with_retry(
+        "v4_activity", df.RetryOptions(5000, 3), {"operation": "bootstrap", **options}
+    )
+    router = df.EntityId("multi_router", "gpt5-mini-matched")
+    acquired = yield context.call_entity(router, "acquire", {"owner": root})
+    if not acquired["acquired"]:
+        raise RuntimeError(
+            "Another v4 experiment holds the routing lease; inspect it rather than running competing traffic"
+        )
+    spec = prepared["specification"]
+    completed = []
+    for arm in ARMS:
+        if completed:
+            yield context.create_timer(
+                v4_time(context) + timedelta(seconds=spec["cooldown_seconds"])
+            )
+        yield context.call_entity(
+            router,
+            "begin",
+            {
+                "owner": root,
+                "arm": arm,
+                "specification": spec,
+                "now": v4_time(context).isoformat(),
+            },
+        )
+        yield context.call_activity(
+            "v4_activity", {"operation": "begin", "run_id": root, "arm": arm}
+        )
+        context.set_custom_status({"phase": arm, "completed_stages": completed})
+        tasks = [
+            context.call_sub_orchestrator(
+                "multi_deployment_group",
+                {"run_id": root, "arm": arm, "group": group, **prepared},
+                instance_id=f"{root}-{arm}-worker-{group}",
+                version=context.version,
+            )
+            for group in range(spec["workers"])
+        ]
+        yield context.task_all(tasks)
+        result = yield context.call_activity(
+            "v4_activity", {"operation": "finalize_arm", "run_id": root, "arm": arm}
+        )
+        report = result["report"]
+        completed.append(
+            {
+                "arm": arm,
+                **{
+                    key: report[key]
+                    for key in (
+                        "status",
+                        "succeeded",
+                        "failed",
+                        "pending",
+                        "elapsed_seconds",
+                        "errors_429",
+                        "semantic_status",
+                    )
+                },
+            }
+        )
+        context.set_custom_status({"phase": arm, "completed_stages": completed})
+    result = yield context.call_activity("v4_activity", {"operation": "finalize", "run_id": root})
+    if not result["router_reconciliation_required"]:
+        yield context.call_entity(router, "release", {"owner": root})
+    return result
+
+
+@app.orchestration_trigger(context_name="context")
+def multi_deployment_group(context: df.DurableOrchestrationContext):
+    return (yield from multi_group_steps(context))
+
+
+def multi_group_steps(context: df.DurableOrchestrationContext):
+    options = context.get_input()
+    root, arm, group, spec = (
+        options["run_id"],
+        options["arm"],
+        options["group"],
+        options["specification"],
+    )
+    router = df.EntityId("multi_router", "gpt5-mini-matched")
+    size = spec["count"] // spec["workers"]
+    for index in range(group * size, (group + 1) * size):
+        waited = 0.0
+        terminal = False
+        for attempt in range(1, spec["max_attempts"] + 1):
+            item = {"run_id": root, "arm": arm, "index": index, "attempt": attempt}
+            while True:
+                status = yield context.call_activity(
+                    "v4_activity", {"operation": "record_state", **item}
+                )
+                if status["terminal"]:
+                    terminal = True
+                    break
+                key = f"{arm}-{index}-{attempt}"
+                route = yield context.call_entity(
+                    router,
+                    "route",
+                    {
+                        "owner": root,
+                        "arm": arm,
+                        "key": key,
+                        "now": v4_time(context).isoformat(),
+                        "estimated_cost_usd": options["request_costs"][index],
+                    },
+                )
+                if route.get("terminal_error"):
+                    yield context.call_activity(
+                        "v4_activity",
+                        {
+                            "operation": "finish_record",
+                            **item,
+                            "error": route["terminal_error"],
+                            "router_wait_seconds": waited,
+                        },
+                    )
+                    terminal = True
+                    break
+                if route.get("wait_until"):
+                    before = v4_time(context)
+                    until = min(
+                        datetime.fromisoformat(route["wait_until"]), before + timedelta(seconds=30)
+                    )
+                    yield context.create_timer(until)
+                    waited += max(0, (v4_time(context) - before).total_seconds())
+                    continue
+                response = yield context.call_activity(
+                    "v4_activity",
+                    {
+                        "operation": "attempt",
+                        **item,
+                        "target": route["target"],
+                        "router_wait_seconds": waited,
+                    },
+                )
+                if response.get("retryable"):
+                    until = datetime.fromisoformat(response["completed_at"]) + timedelta(
+                        seconds=response["retry_after"]
+                    )
+                    yield context.call_entity(
+                        router,
+                        "cooldown",
+                        {
+                            "owner": root,
+                            "arm": arm,
+                            "key": key,
+                            "until": until.isoformat(),
+                        },
+                    )
+                terminal = response["terminal"]
+                break
+            if terminal:
+                break
+        context.set_custom_status(
+            {
+                "arm": arm,
+                "group": group,
+                "processed": index - group * size + 1,
+                "total": size,
+                "last_progress_at": v4_time(context).isoformat(),
+            }
+        )
+    return {"arm": arm, "group": group, "processed": size}
+
+
+@app.entity_trigger(context_name="context")
+def multi_router(context: df.DurableEntityContext):
+    state, result = update_router(
+        context.get_state(lambda: {}), context.operation_name, context.get_input()
+    )
+    context.set_state(state)
+    context.set_result(result)
+
+
+@app.activity_trigger(input_name="item")
+def v4_activity(item: dict):
+    activities = MultiActivities()
+    try:
+        operation = item["operation"]
+        if operation == "bootstrap":
+            return activities.bootstrap(item)
+        if operation == "begin":
+            return activities.begin_arm(item["run_id"], item["arm"])
+        if operation == "record_state":
+            return activities.record_state(item)
+        if operation == "attempt":
+            return activities.attempt(item)
+        if operation == "finish_record":
+            return activities.finish_record(item)
+        if operation == "finalize_arm":
+            return activities.finalize_arm(item["run_id"], item["arm"])
+        if operation == "finalize":
+            return activities.finalize(item["run_id"])
+        raise ValueError("Unsupported v4 activity operation")
+    finally:
+        activities.close()
 
 
 @app.orchestration_trigger(context_name="context")

@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -53,3 +54,45 @@ def test_complex_quality_panel_renders_without_inference(tmp_path: Path, monkeyp
     app.selectbox[0].select("simulated-complex-v2").run()
     assert not app.exception
     assert any(item.value == "Complex workload quality" for item in app.subheader)
+
+
+def test_v4_arm_and_target_views_render_without_inference(tmp_path: Path, monkeypatch):
+    path = tmp_path / "demo.sqlite3"
+    seed_demo(path)
+    store = State(path, readonly=True)
+    try:
+        detail = dashboard.load_batch_details(store, "simulated-complex-v2")
+        history = [
+            row
+            for row in dashboard.load_run_history(store)
+            if row["run_id"] == "simulated-complex-v2"
+        ]
+    finally:
+        store.close()
+    history[0]["mode"] = detail["mode"] = "multi-deployment"
+    detail["multi_deployment_stages"] = [
+        {
+            **copy.deepcopy(detail),
+            "arm": arm,
+            "gate": {"status": "needs_review"},
+            "target_metrics": [{"alias": alias, "http_attempts": 13, "errors_429": 0}],
+        }
+        for arm, alias in (("single", "control"), ("pool", "pool-1"))
+    ]
+    detail["multi_deployment_progress"] = {"phase": "pool"}
+    monkeypatch.setattr(dashboard, "load_batch_details", lambda *_: detail)
+    monkeypatch.setattr(dashboard, "load_run_history", lambda *_: history)
+    monkeypatch.setenv("LLM_DASHBOARD_STATE", str(path))
+
+    def render():
+        from llm_batch_starter.dashboard import render_dashboard
+
+        render_dashboard()
+
+    app = AppTest.from_function(render).run(timeout=30)
+    assert not app.exception
+    labels = [item.value for item in app.subheader]
+    assert "V4 matched-quota comparison" in labels
+    assert "V4 durable execution progress" in labels
+    assert "Execution artifacts" in labels
+    assert "Batch partitions" not in labels

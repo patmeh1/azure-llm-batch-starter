@@ -37,4 +37,5 @@ node_modules/
 test-results/
 playwright-report/
 infra/v3-model.json
+infra/v4-models.json
 _site/

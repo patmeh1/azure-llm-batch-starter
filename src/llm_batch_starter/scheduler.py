@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from .azure_state import valid_run_id
 from .complex_workload import configure, generate_complex
 from .config import DEFAULT_PROMPT, DEFAULT_SCHEMA, WORKFLOW_VERSION, Settings, credential
+from .multi_deployment import ARMS, MultiDeploymentSpec, plan_multi, v4_settings
 from .prepare import estimate_cost
 from .reporting import summarize_documents
 from .state import State
@@ -107,6 +108,7 @@ class SchedulerAccess:
             "complex_workflow",
             "retry_workflow",
             "recovery_workflow",
+            "multi_deployment_workflow",
         }:
             raise ValueError("This instance is not a supported application root")
         payload = json.loads(state.serialized_input or "{}")
@@ -130,7 +132,7 @@ class SchedulerAccess:
             )
         run = {
             "id": run_id,
-            "mode": "batch",
+            "mode": "multi-deployment" if state.name == "multi_deployment_workflow" else "batch",
             "source": "live-scheduler",
             "status": status,
             "runtime_status": runtime,
@@ -168,9 +170,42 @@ class SchedulerAccess:
                 "complex_workflow",
                 "retry_workflow",
                 "recovery_workflow",
+                "multi_deployment_workflow",
             }:
                 runs.append(self.get_run(instance_id))
         return runs
+
+    def start_multi(self, spec: MultiDeploymentSpec) -> str:
+        plan = plan_multi(spec, self.settings)
+        settings, profile = v4_settings(self.settings)
+        run_id = uuid.uuid4().hex
+        self.registry.save_run(
+            {
+                "id": run_id,
+                "mode": "multi-deployment",
+                "status": "submission_pending",
+                "source": "live-scheduler",
+                "record_count": spec.count * 2,
+                "started_at": utc_now(),
+                "ended_at": None,
+                "metadata": plan["generation"],
+                "workload_profile": profile,
+            }
+        )
+        self.client.schedule_new_orchestration(
+            "multi_deployment_workflow",
+            input={
+                "count": spec.count * 2,
+                "specification": spec.model_dump(),
+                "workload_profile": profile,
+                "generation": plan["generation"],
+                "expected_model": [settings.model_name, settings.model_version],
+            },
+            instance_id=run_id,
+            version=WORKFLOW_VERSION,
+            tags={"application": "llm-batch-starter", "experiment": "v4-matched-quota"},
+        )
+        return run_id
 
     def start_complex(self, count: int, seed: int, *, run_id: str | None = None) -> str:
         settings, profile = configure(self.settings)
@@ -243,7 +278,7 @@ class SchedulerAccess:
         jobs = []
         processor = (
             state
-            if state.name == "recovery_workflow"
+            if state.name in {"recovery_workflow", "multi_deployment_workflow"}
             else self.client.get_orchestration_state(f"{run_id}-processor")
         )
         if processor and processor.serialized_custom_status:
@@ -275,6 +310,24 @@ class SchedulerAccess:
             report[key] = None
         report["metrics_availability"] = "awaiting_final_reconciliation"
         report["orchestration_elapsed_seconds"] = orchestration_elapsed
+        if state.name == "multi_deployment_workflow":
+            payload = json.loads(state.serialized_input or "{}")
+            report["specification"] = payload["specification"]
+            report["multi_deployment_progress"] = json.loads(state.serialized_custom_status or "{}")
+            worker_progress = []
+            for arm in ARMS:
+                for worker in range(payload["specification"]["workers"]):
+                    child = self.client.get_orchestration_state(f"{run_id}-{arm}-worker-{worker}")
+                    if child:
+                        worker_progress.append(
+                            {
+                                "arm": arm,
+                                "worker": worker,
+                                "runtime_status": child.runtime_status.name.lower(),
+                                "progress": json.loads(child.serialized_custom_status or "{}"),
+                            }
+                        )
+            report["worker_progress"] = worker_progress
         return report
 
     def request_cancel(self, run_id: str) -> str:
@@ -297,6 +350,10 @@ class SchedulerAccess:
         return []
 
     def retry_failed(self, parent_run_id: str) -> str:
+        if self.get_run(parent_run_id)["mode"] == "multi-deployment":
+            raise ValueError(
+                "V4 quality/record failures are evidence; do not turn them into a new Batch retry run"
+            )
         report = self.detail(parent_run_id)
         count = report.get("retryable_failed_records_count", 0)
         if not count:
@@ -334,6 +391,10 @@ class SchedulerAccess:
 
     def recover(self, parent_run_id: str) -> str:
         parent = self.get_run(parent_run_id)
+        if parent["mode"] == "multi-deployment":
+            raise ValueError(
+                "V4 requires investigated durable replay recovery, not the Batch recovery workflow"
+            )
         if parent["runtime_status"] not in {"failed", "terminated", "canceled"}:
             raise ValueError("Recovery requires an investigated, terminal orchestration failure")
         run_id = uuid.uuid5(uuid.NAMESPACE_URL, f"llm-batch-starter:recovery:{parent_run_id}").hex

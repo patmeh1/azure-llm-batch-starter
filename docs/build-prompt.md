@@ -85,3 +85,32 @@ request whose response is unknown.
 Provide a guide and allowlisted output exports. Keep live results explicitly
 pending until both modes are terminal. Report test assumptions and measured
 limits without claiming exact reproduction of an unknown production system.
+
+## V4 extension
+
+Test whether multiple GPT-5 mini US DataZoneStandard deployments help when
+aggregate quota is held constant. Retain the single 150K TPM / 150 RPM
+control and add three 50K TPM / 50 RPM deployments in the same approved
+account, subscription, and region. Do not include the control in the pool,
+increase quota, buy PTUs, or change geography silently.
+
+Run both arms in Azure Durable Functions/Scheduler with five ordered
+workers, identical synthetic complex-v2 prompts/records, and the same
+generation/routing/retry settings. Use round robin among eligible targets,
+shared per-target cooldowns, service retry headers first, and a 30-second
+exponential fallback with jitter. Disable SDK retries and allow at most
+four total attempts per record across targets. Clearly label this as an
+online throttling observation profile, not service Batch or a proactive
+token-paced production configuration.
+
+Start with an operator-approved 65-record-per-arm pilot. Provide a dry-run
+1,700-record scenario without executing it unless separately approved.
+Preserve attempt/cost/deadline bounds, atomic paid intents/responses,
+explicit ambiguous outcomes, cancellation checks, and an exclusive routing
+lease that remains held when reconciliation is uncertain.
+
+Publish measured failures, per-target limits/429s, record and HTTP latency,
+router waits, token usage, unchanged semantic gates, and inspected synthetic
+examples. Update the comparison site with a separate v4 page and fourth
+column, while retaining v3's interrupted status. Deployment count alone
+does not add quota; HTTP 429 alone does not reveal internal scale-up state.

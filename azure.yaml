@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 name: azure-llm-batch-starter
 metadata:
-  template: azure-llm-batch-starter@0.2.0
+  template: azure-llm-batch-starter@0.4.0
 services:
   api:
     project: ./services/orchestrator

@@ -106,3 +106,28 @@ The [customer-facing GitHub Pages site](customer-site.md) has a separate
 standard-library builder and Playwright suite (`npm run test:site`). Its
 normalized timing reports use `--category site`. These tests do not read
 private run state or call Azure.
+
+V4 adds a matched-quota dry-run and mocked tests for equal 150K aggregate
+allocation, immutable prompt identity, target selection/cooldowns,
+service-header parsing, four total attempts across targets, original
+deadlines and cost reservations, duplicate activity delivery, uncertain
+paid intents, cancellation, lease retention, and full two-arm reconciliation.
+The new workflow is exercised through generator-level durable timer tests,
+not a replacement custom orchestration engine.
+
+The actual Azure [v4 pilot](v4-results.md) covers 65 records per
+arm on four actual GPT-5 mini deployments. Completed durable execution,
+schema-valid results, and semantic acceptance are reported separately.
+The supplied 1,700-record scenario is **not live-validated** by that pilot.
+
+Website tests cover all nine real routes, four version columns, matched
+aggregate allocations, per-target/arm count reconciliation, incomplete
+metrics, and privacy/model/prompt guards. They do not silently relabel
+historical v1-v3 evidence.
+
+The v4 publication was checked with 156 Python tests, 10 website browser
+scenarios, three dashboard browser scenarios, lint/type checks, and actual
+source/wheel archive verification. The Python dependency audit passed.
+A full npm advisory audit was rate-limited with HTTP429 by the configured
+package feed; no clean full npm audit is claimed. That development-tool
+request is unrelated to the Azure inference429 counts in the pilot evidence.

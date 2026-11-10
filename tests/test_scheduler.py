@@ -91,6 +91,7 @@ def test_recovery_retains_artifact_identity_and_is_idempotent(tmp_path):
     access.registry = State(tmp_path / "state.sqlite3")
     scheduled = []
     access.get_run = lambda run_id: {
+        "mode": "batch",
         "runtime_status": "failed",
         "record_count": 1700,
         "artifact_run_id": "original-run",

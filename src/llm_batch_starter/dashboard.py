@@ -158,6 +158,44 @@ def render_dashboard() -> None:
             )
             selected = st.selectbox("Inspect a run", frame["run_id"].tolist())
             detail = load_batch_details(store, selected)
+            if detail.get("multi_deployment_progress") or detail.get("worker_progress"):
+                st.subheader("V4 durable execution progress")
+                st.json(
+                    {
+                        "stages": detail.get("multi_deployment_progress"),
+                        "workers": detail.get("worker_progress"),
+                    }
+                )
+                st.caption(
+                    "Live scheduler state; processed worker records can include failures. Final metrics require reconciliation."
+                )
+            if detail.get("multi_deployment_stages"):
+                st.subheader("V4 matched-quota comparison")
+                rows = []
+                for stage in detail["multi_deployment_stages"]:
+                    rows.append(
+                        {
+                            "arm": stage["arm"],
+                            "status": stage["status"],
+                            "elapsed_seconds": stage["elapsed_seconds"],
+                            "succeeded": stage["succeeded"],
+                            "failed": stage["failed"],
+                            "http_429_attempts": stage["errors_429"],
+                            "router_wait_seconds": stage["router_wait_seconds"],
+                            "primary_accuracy": (stage.get("quality") or {})
+                            .get("field_accuracy", {})
+                            .get("primary_route"),
+                            "acceptance_gate": stage["gate"]["status"],
+                        }
+                    )
+                st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+                st.caption(
+                    "One 150K deployment versus three 50K deployments: same 150K aggregate per arm, five workers, online inference in Azure."
+                )
+                for stage in detail["multi_deployment_stages"]:
+                    st.write(
+                        {"arm": stage["arm"], "per_deployment_metrics": stage["target_metrics"]}
+                    )
             if detail.get("metrics_availability") == "awaiting_final_reconciliation":
                 st.info(
                     "Final reconciliation is not available. Missing counts, usage, and errors are unknown, not zero."
@@ -246,7 +284,11 @@ def render_dashboard() -> None:
                 )
             st.caption(detail["cost_note"])
             st.write({"Reported-usage cost estimate (USD)": detail["priced_usage_estimate_usd"]})
-            st.subheader("Batch partitions")
+            st.subheader(
+                "Batch partitions"
+                if detail["mode"] != "multi-deployment"
+                else "Execution artifacts"
+            )
             if detail["mode"] == "client-batch":
                 st.caption(
                     "Client-side groups share one online deployment. These are not Azure Batch API jobs."

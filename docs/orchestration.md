@@ -77,9 +77,9 @@ Ambiguous submissions retain their reservation until an operator establishes
 the remote outcome; cancellation does not make an unknown paid submission safe
 to repeat.
 
-The host and starters explicitly use orchestration version `3.0`.
-The separately named complex workflow is new; prior workflow sequences remain
-compatible with versions `1.0` and `2.0`.
+The host and starters explicitly use orchestration version `4.0`.
+The separately named v4 online routing workflows are new; prior workflow
+sequences remain compatible with versions `1.0`, `2.0`, and `3.0`.
 Sub-orchestrations inherit the root version. `CurrentOrOlder` matching with
 `Reject` prevents an older worker from accepting newer-version work during
 rolling deployment. The original unversioned activity sequence is retained
@@ -112,3 +112,25 @@ still requires operator reconciliation. Repeating recovery for the same failed
 root returns the same recovery ID. The original failed history remains visible,
 and reporting includes the prior application's elapsed time instead of claiming
 the recovery observer processed the entire dataset in seconds.
+
+## V4 online execution and recovery boundary
+
+`multi_deployment_workflow` runs the single and pool arms serially;
+`multi_deployment_group` owns an ordered subset of records. The
+`multi_router` entity provides an exclusive experiment lease, bounded
+attempt/cost reservations, round robin among non-cooling targets, and a
+non-resetting deadline. Model calls remain in `v4_activity`, never in
+replayed orchestration code. Timers wait without holding an invocation.
+
+Atomic private Blob intent/response pairs protect paid online attempts.
+An intent without a saved response, or a connection/timeout with uncertain
+completion, is recorded as `ambiguous_online_result` instead of blindly
+retried. Such a final report retains the router lease for investigation.
+Non-ambiguous terminal results release it, even when processing or semantic
+gates failed. New runs must not erase a held lease.
+
+The Batch recovery and selective-retry commands deliberately reject v4
+roots. A model's semantic failure is evidence, not permission to create
+another paid Batch job. See [v4 operations](v4-multi-deployment.md) for
+monitoring, cancellation, private artifacts, and the larger unexecuted
+scenario.

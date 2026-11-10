@@ -5,6 +5,8 @@
           <tr><th scope="row">Modes within the v2 13-case run</th><td>Model build, active prompt/schema, seed, records, output ceiling</td><td>Compare complete processing time and each quality gate. One run cannot establish that concurrency causes a semantic difference.</td></tr>
           <tr><th scope="row">V1 versus v2</th><td>GPT-5.4 mini build</td><td>Prompt complexity, count, quota, and output ceiling differ. Not a controlled prompt-only performance comparison.</td></tr>
           <tr><th scope="row">V2 versus v3</th><td>Complex prompt/schema bundle, low reasoning effort, output ceiling</td><td>Model, quota, request pacing, dataset size, and grouping differ. Not a controlled GPT-5.4 mini versus GPT-5 mini ranking.</td></tr>
+          <tr><th scope="row">Arms within v4</th><td>GPT-5 mini build, prompt/schema, 65 records, five workers, routing/retry logic, region, 150K TPM / 150 RPM total</td><td>One 150K target versus three 50K targets. Time order, cache, per-target headroom, and service conditions can differ; one pilot cannot establish internal scaling behavior.</td></tr>
+          <tr><th scope="row">V3 versus v4</th><td>GPT-5 mini build and complex-v2 prompt/schema</td><td>V3 is interrupted. V4 is a new 65-record-per-arm cloud experiment with four-attempt routing, not a completion or speedup claim for the 1,700-record local run.</td></tr>
         </tbody></table></div>
         <h2 style="margin-top:2rem">What the evidence does not promise.</h2>
         <div class="limitations"><ul>
@@ -14,6 +16,8 @@
           <li>Schema-valid output is not semantic accuracy. Exact-match synthetic grading has its own limitations and does not replace evaluation on an authorized real workload.</li>
           <li>Usage estimates apply configured token rates to reported usage. They are not invoices and exclude infrastructure, missing usage, taxes, and billing adjustments.</li>
           <li>US Data Zone inference is broader than a single resource region. Verify current model/SKU availability, quota, network access, and residency requirements before deployment.</li>
+          <li>A 429 alone does not distinguish request/token admission from temporary capacity conditions. Returned limits are observations, not a direct scale-up-state API.</li>
+          <li>V4 divides existing quota across targets. Quota is neither a spending cap nor a throughput SLA; the pilot's application cost guard excludes infrastructure and is not an Azure billing limit.</li>
           <li>This static page is built from committed public evidence. V3 progress is timestamped; it does not refresh directly from the running job or any Azure endpoint.</li>
           <li>Keep real customer records, credentials, private configuration, and raw cloud logs out of public repositories and demos.</li>
         </ul></div>

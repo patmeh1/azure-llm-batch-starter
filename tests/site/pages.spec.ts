@@ -2,12 +2,14 @@ import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 const v3 = JSON.parse(readFileSync('docs/v3-results.json', 'utf8'));
+const v4 = JSON.parse(readFileSync('docs/v4-results.json', 'utf8'));
 const routes = [
   ['Overview', 'index.html'],
   ['Compare versions', 'comparison.html'],
   ['V1 baseline', 'v1.html'],
   ['V2 complexity', 'v2.html'],
   ['V3 GPT-5 mini', 'v3.html'],
+  ['V4 multi-deployment', 'v4.html'],
   ['What works', 'approach.html'],
   ['Resources', 'resources.html'],
   ['Methodology', 'methodology.html'],
@@ -52,6 +54,10 @@ test('comparison clearly distinguishes GPT builds, workload variables, and measu
   await expect(identity.getByRole('cell').nth(1)).toContainText('GPT-5.4 mini');
   await expect(identity.getByRole('cell').nth(2)).toContainText('GPT-5 mini');
   await expect(identity.getByRole('cell').nth(2)).toContainText('2025-08-07');
+  await expect(identity.getByRole('cell')).toHaveCount(4);
+  await expect(identity.getByRole('cell').nth(3)).toContainText('GPT-5 mini');
+  await expect(identity.getByRole('cell').nth(3)).toContainText('2025-08-07');
+  await expect(setup.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Service allocation', exact: true }) }).getByRole('cell').nth(3)).toContainText('150K TPM / 150 RPM in each arm');
   for (const label of ['Prompt workload', 'Input volume', 'Dataset size', 'Output contract', 'Processing modes', 'Service allocation', 'Client pacing / retries', 'Generation settings', 'Azure SKU / geography', 'Actual Azure Batch API']) {
     await expect(setup.getByRole('rowheader', { name: label, exact: true })).toBeVisible();
   }
@@ -82,6 +88,30 @@ test('version pages preserve original evidence and the incomplete v3 boundary', 
     await expect(page.locator('#v3-notice')).toContainText('no active runner was observed');
     await expect(page.locator('#v3-notice')).toContainText('Last recorded activity');
   }
+});
+
+test('v4 publishes the actual matched-quota outcomes without hiding failures', async ({ page, request }, testInfo) => {
+  await page.goto('/v4.html');
+  await expect(page.locator('#v4')).toHaveAttribute('data-results-final', String(v4.results_final));
+  await expect(page.locator('#v4-notice time')).toHaveAttribute('datetime', v4.observed_at);
+  const outcomes = page.getByRole('region', { name: 'V4 matched-quota outcomes' });
+  await expect(outcomes.locator('tbody tr')).toHaveCount(2);
+  for (const [index, stage] of v4.stages.entries()) {
+    const cells = outcomes.locator('tbody tr').nth(index).getByRole('cell');
+    await expect(cells.nth(1)).toHaveText(`${stage.succeeded} / 65`);
+    await expect(cells.nth(2)).toHaveText(String(stage.failed));
+    await expect(cells.nth(3)).toHaveText(String(stage.http_attempts));
+    await expect(cells.nth(4)).toHaveText(String(stage.errors_429));
+  }
+  await expect(page.getByRole('region', { name: 'V4 deployment observations' }).locator('tbody tr')).toHaveCount(4);
+  await expect(page.getByRole('region', { name: 'V4 semantic quality' }).locator('tbody tr')).toHaveCount(2);
+  await expect(page.locator('#v4-reproduce')).toContainText('The full 1,700-record scenario was not executed.');
+  expect(await (await request.get('data/v4-results.json')).json()).toEqual(v4);
+  const samples = await (await request.get('data/v4-output-samples.json')).json();
+  expect(samples.arms).toHaveLength(2);
+  expect(samples.arms.every((arm: { records: unknown[] }) => arm.records.length === 3)).toBe(true);
+  await page.locator('#v4-results-title').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath('v4-results-desktop.png') });
 });
 
 test('theme survives page navigation and browser back without storage', async ({ page }, testInfo) => {
@@ -118,7 +148,7 @@ test('mobile tabs remain reachable and comparison tables scroll without document
 });
 
 test('old shared hash links redirect to their new dedicated pages', async ({ page }) => {
-  for (const [hash, file] of [['v1', 'v1.html'], ['v2', 'v2.html'], ['v3', 'v3.html'], ['comparisons', 'comparison.html'], ['resources', 'resources.html'], ['start', 'resources.html']]) {
+  for (const [hash, file] of [['v1', 'v1.html'], ['v2', 'v2.html'], ['v3', 'v3.html'], ['v4', 'v4.html'], ['comparisons', 'comparison.html'], ['resources', 'resources.html'], ['start', 'resources.html']]) {
     await page.goto(`/?scoutTheme=light#${hash}`);
     await expect(page.locator('body')).toHaveAttribute('data-page', file);
     expect(new URL(page.url()).pathname).toBe(`/${file}`);

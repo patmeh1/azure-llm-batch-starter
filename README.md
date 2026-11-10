@@ -9,7 +9,7 @@ All examples are synthetic. No Azure credentials or customer content are include
 
 **Customer-facing website:** [Overview](https://patmeh1.github.io/azure-llm-batch-starter/)
 and [side-by-side comparison](https://patmeh1.github.io/azure-llm-batch-starter/comparison.html).
-Separate pages explain v1/v2 **GPT-5.4 mini** versus v3 **GPT-5 mini**, the exact
+Separate pages explain v1/v2 **GPT-5.4 mini** versus v3/v4 **GPT-5 mini**, the exact
 configuration changes, measured outcomes, limitations, prompts, and downloads.
 The site does not connect to Azure or trigger inference.
 
@@ -24,6 +24,8 @@ The site does not connect to Azure or trigger inference.
 | Run complex synthetic prompts stored in Markdown | [V2 complex workload](docs/complex-prompts.md) |
 | Compare GPT-5 mini sequential calls with five groups of 340 | [V3 reproduction guide](docs/v3-gpt5-mini.md) |
 | Inspect the full v3 experiment's current evidence | [V3 results/status](docs/v3-results.md) |
+| Compare one deployment with three at the same total quota | [V4 step-by-step guide](docs/v4-multi-deployment.md) |
+| Inspect the 65-record-per-arm multi-deployment pilot | [V4 results](docs/v4-results.md) |
 | Maintain or republish the public HTML site | [Customer site guide](docs/customer-site.md) |
 | Review v2 timing and failed semantic acceptance gates | [V2 measured results](docs/complex-v2-validation.md) |
 | Understand the reusable Microsoft framework | [Orchestration](docs/orchestration.md) |
@@ -91,6 +93,25 @@ The full comparison is currently interrupted and incomplete; the
 [results/status](docs/v3-results.md) preserve partial evidence, not final results.
 See the [v3 guide](docs/v3-gpt5-mini.md)
 for assumptions, budget/attempt/deadline guards, resume behavior, and output export.
+
+## V4 matched-quota multi-deployment pilot
+
+Version **0.4.0** adds an Azure-hosted experiment comparing one 150K TPM
+GPT-5 mini deployment with three 50K deployments. Both arms use five workers,
+the unchanged v2 prompts, identical 65-record inputs, and a shared
+round-robin/per-target-cooldown router. **The pool does not add aggregate
+quota.** This is online inference in Durable Functions, not service Batch.
+
+```powershell
+llm-batch v4-run --scenario scenarios\v4-matched-quota-pilot.json --config .azure\v3-config.json
+```
+
+This previews without charges. Follow the [v4 guide](docs/v4-multi-deployment.md)
+to deploy the targets, approve a bounded live run, monitor the same root ID,
+and export measured evidence. [Pilot results](docs/v4-results.md) distinguish
+record failures, HTTP 429 attempts, and semantic quality; multiple deployments
+are not a no-throttling guarantee. A 1,700-record scenario is included but
+**was not executed**. The interrupted v3 run remains separately labeled.
 
 ## Real Azure demo
 

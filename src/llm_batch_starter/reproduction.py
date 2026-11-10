@@ -10,7 +10,7 @@ from typing import Any
 from filelock import FileLock
 from pydantic import BaseModel, ConfigDict, Field
 
-from .complex_workload import configure, generate_complex
+from .complex_workload import V2_PROMPT_HASH, configure, generate_complex
 from .config import Settings
 from .load_testing import Scenario, Stage, _save, quality_gate
 from .pipeline import run_pipeline
@@ -20,8 +20,6 @@ from .reporting import analysis_csv, summarize_run
 from .state import State
 from .synthetic import read_records, write_records
 from .telemetry import elapsed_between, utc_now
-
-V2_PROMPT_HASH = "469532c76922192658dd12a81cd842a8b2328d529db6acbb4c433385e30cb4fe"
 
 
 class ReproductionSpec(BaseModel):

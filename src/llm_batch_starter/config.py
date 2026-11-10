@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .prompt_assets import read_prompt
 
 CATEGORIES = ["shipping", "billing", "access", "product", "other"]
-WORKFLOW_VERSION = "3.0"
+WORKFLOW_VERSION = "4.0"
 DEFAULT_PROMPT = read_prompt("simple-v1.md")
 DEFAULT_SCHEMA: dict[str, Any] = {
     "type": "object",

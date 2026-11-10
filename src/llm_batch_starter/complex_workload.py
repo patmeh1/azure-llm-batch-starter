@@ -14,6 +14,7 @@ from .prompt_assets import read_prompt
 from .synthetic import Record
 
 PROFILE: Literal["complex-v2"] = "complex-v2"
+V2_PROMPT_HASH = "469532c76922192658dd12a81cd842a8b2328d529db6acbb4c433385e30cb4fe"
 UNKNOWN_CAUSE = "No reliable cause can be established."
 ARCHIVED_BASIS = "Archived automated review; not independently verified."
 GOALS = ("Instructions", "Requirements", "Progress", "Fault", "Dispute")

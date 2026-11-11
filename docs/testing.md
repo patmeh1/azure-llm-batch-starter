@@ -44,6 +44,12 @@ On a Windows development machine with Edge already installed, set
 and stop their own synthetic-only server. Their duration/status reports appear
 in the dashboard alongside Python tests.
 
+Hosted browser CI and the Pages build use `ubuntu-24.04` with the runner's
+preinstalled Chrome (`BROWSER_CHANNEL=chrome`). Both verify the browser version
+and run the full browser suites; neither depends on an additional `apt` install
+of Playwright's system dependencies. A missing browser fails the job rather
+than skipping verification.
+
 The scheduler adapter is type-checked. A narrow mypy override skips the
 upstream `durabletask.task` generator implementation, which triggers an internal
 mypy 1.20 error; application code and public client interfaces remain checked.

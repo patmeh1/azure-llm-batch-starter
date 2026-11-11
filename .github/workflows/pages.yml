@@ -24,7 +24,9 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      BROWSER_CHANNEL: chrome
     permissions:
       contents: read
       pages: read
@@ -40,7 +42,8 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
+      - name: Verify the runner-provided browser
+        run: google-chrome --version
       - name: Build and verify static site
         run: npm run test:site
       - run: python scripts/normalize-browser-report.py --category site

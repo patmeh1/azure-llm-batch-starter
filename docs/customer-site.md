@@ -108,6 +108,10 @@ across navigation, downloads, clipboard failures, and no-JavaScript access.
 
 `.github/workflows/pages.yml` builds and browser-tests the site on a clean
 runner, then publishes **only `_site`** using the official GitHub Pages actions.
+The build uses `ubuntu-24.04` and its preinstalled Chrome through Playwright's
+`BROWSER_CHANNEL=chrome` setting. It verifies the browser version before running
+the full suite, avoiding a separate Ubuntu package-mirror dependency during
+publication. Browser checks remain mandatory before the deploy job runs.
 Build has read-only repository/Pages access; deploy has Pages and short-lived
 OIDC permissions. No Azure credentials, subscriptions, or paid inference are
 configured in this workflow.

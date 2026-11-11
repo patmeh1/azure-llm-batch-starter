@@ -209,6 +209,26 @@ def test_final_comparison_does_not_keep_stale_incomplete_claims(site_root):
     assert "Both modes are terminal" in (output / "v3.html").read_text()
 
 
+def test_comparison_cells_include_all_version_labels_without_javascript(site_root):
+    output = site.build_site(site_root)
+    labels = [
+        "V1 / BASELINE",
+        "V2 / COMPLEXITY",
+        "V3 / GROUPED REQUESTS",
+        "V4 / MATCHED QUOTA",
+        "V5 / SMART ROUTING",
+    ]
+    for filename in ("index.html", "comparison.html"):
+        page = (output / filename).read_text()
+        rows = re.findall(r'<tr role="row"><th scope="row".*?</tr>', page)
+        assert rows
+        for row in rows:
+            assert row.count('<td role="cell">') == 5
+            assert re.findall(
+                r'<span class="comparison-version" aria-hidden="true">([^<]+)</span>', row
+            ) == labels
+
+
 def test_cross_page_fragments_are_validated(site_root):
     template = site_root / "site" / "pages" / "overview.html"
     template.write_text(template.read_text() + '<a href="resources.html#missing">Broken</a>')

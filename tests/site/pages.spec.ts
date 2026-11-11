@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 const v3 = JSON.parse(readFileSync('docs/v3-results.json', 'utf8'));
@@ -16,6 +16,98 @@ const routes = [
   ['Resources', 'resources.html'],
   ['Methodology', 'methodology.html'],
 ];
+
+const comparisonLabels = [
+  'V1 / BASELINE',
+  'V2 / COMPLEXITY',
+  'V3 / GROUPED REQUESTS',
+  'V4 / MATCHED QUOTA',
+  'V5 / SMART ROUTING',
+];
+
+async function expectComparisonsToFit(page: Page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  for (const table of await page.locator('.comparison-table').all()) {
+    const overflow = await table.evaluate(element => {
+      const region = element.parentElement!;
+      const bounds = region.getBoundingClientRect();
+      return {
+        region: region.scrollWidth - region.clientWidth,
+        table: element.getBoundingClientRect().width - region.clientWidth,
+        cells: [...element.querySelectorAll('tbody th, tbody td')]
+          .filter(cell => {
+            const rect = cell.getBoundingClientRect();
+            return rect.left < bounds.left - 1 || rect.right > bounds.right + 1
+              || cell.scrollWidth > cell.clientWidth + 1;
+          })
+          .map(cell => cell.textContent),
+      };
+    });
+    expect(overflow.region).toBeLessThanOrEqual(1);
+    expect(overflow.table).toBeLessThanOrEqual(1);
+    expect(overflow.cells).toEqual([]);
+  }
+}
+
+for (const width of [961, 1280, 1440, 1920]) {
+  test(`all five versions fit side by side at ${width}px without horizontal scrolling`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1100 });
+    for (const route of ['index.html', 'comparison.html']) {
+      await page.goto(`/${route}?scoutTheme=light`);
+      await expectComparisonsToFit(page);
+      for (const table of await page.locator('.comparison-table').all()) {
+        const headers = table.getByRole('columnheader');
+        await expect(headers).toHaveCount(6);
+        const boxes = await headers.evaluateAll(elements => elements.map(element => {
+          const box = element.getBoundingClientRect();
+          return { left: box.left, right: box.right, top: box.top, width: box.width };
+        }));
+        for (const [index, box] of boxes.entries()) {
+          expect(box.width).toBeGreaterThan(100);
+          expect(box.left).toBeGreaterThanOrEqual(0);
+          expect(box.right).toBeLessThanOrEqual(width);
+          expect(box.top).toBe(boxes[0].top);
+          if (index > 0) expect(box.left).toBeGreaterThanOrEqual(boxes[index - 1].right - 1);
+        }
+        for (const [index, label] of comparisonLabels.entries()) {
+          await expect(headers.nth(index + 1)).toContainText(label);
+        }
+        await expect(table.locator('.comparison-version').first()).toBeHidden();
+      }
+    }
+    await page.locator('#setup table').evaluate(element => element.scrollIntoView({ block: 'start' }));
+    await page.screenshot({ path: testInfo.outputPath(`comparison-desktop-${width}.png`) });
+  });
+}
+
+for (const width of [320, 390, 768, 960]) {
+  test(`all comparison values stack with version labels at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 844 });
+    for (const route of ['index.html', 'comparison.html']) {
+      await page.goto(`/${route}?scoutTheme=light`);
+      await expectComparisonsToFit(page);
+      for (const table of await page.locator('.comparison-table').all()) {
+        const rows = table.locator('tbody tr:not(.group-row)');
+        const labels = await rows.evaluateAll(elements => elements.map(row =>
+          [...row.querySelectorAll('.comparison-version')].map(label => label.textContent),
+        ));
+        expect(labels.length).toBeGreaterThan(0);
+        for (const rowLabels of labels) expect(rowLabels).toEqual(comparisonLabels);
+        const cells = rows.first().getByRole('cell');
+        await expect(cells).toHaveCount(5);
+        let previousBottom = 0;
+        for (const cell of await cells.all()) {
+          await expect(cell.locator('.comparison-version')).toBeVisible();
+          const box = (await cell.boundingBox())!;
+          expect(box.y).toBeGreaterThanOrEqual(previousBottom);
+          previousBottom = box.y + box.height;
+        }
+      }
+    }
+    await page.locator('#setup tbody tr:not(.group-row)').first().evaluate(element => element.scrollIntoView({ block: 'start' }));
+    await page.screenshot({ path: testInfo.outputPath(`comparison-stacked-${width}.png`) });
+  });
+}
 
 test('every navigation tab opens a real page with an active state and a working refresh', async ({ page }) => {
   const errors: string[] = [];
@@ -160,7 +252,7 @@ test('theme survives page navigation and browser back without storage', async ({
   await page.screenshot({ path: testInfo.outputPath('multipage-dark.png') });
 });
 
-test('mobile tabs remain reachable and comparison tables scroll without document overflow', async ({ page }, testInfo) => {
+test('mobile tabs and all comparison versions remain reachable without horizontal scrolling', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/index.html?scoutTheme=light');
   for (const [label, file] of routes) {
@@ -173,9 +265,8 @@ test('mobile tabs remain reachable and comparison tables scroll without document
   await page.goto('/comparison.html?scoutTheme=light');
   const tableRegion = page.getByRole('region', { name: 'Configuration comparison across versions' });
   await tableRegion.scrollIntoViewIfNeeded();
-  expect(await tableRegion.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
-  await tableRegion.evaluate(element => { element.scrollLeft = element.scrollWidth; });
-  await expect(tableRegion.getByRole('columnheader').last()).toContainText('GPT-5 mini');
+  await expectComparisonsToFit(page);
+  await expect(tableRegion.locator('tbody tr:not(.group-row)').first().locator('.comparison-version')).toHaveText(comparisonLabels);
   await page.screenshot({ path: testInfo.outputPath('multipage-mobile.png') });
 });
 
@@ -236,5 +327,8 @@ test('each real page and navigation works without JavaScript', async ({ browser 
   }
   await page.goto('http://127.0.0.1:8771/comparison.html');
   await expect(page.locator('#outcomes')).toContainText('516.43 s');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectComparisonsToFit(page);
+  await expect(page.locator('.comparison-version').first()).toBeVisible();
   await context.close();
 });

@@ -791,6 +791,14 @@ def compare_versions(
     if v2["configured_client_limits"] != {"rpm": 120, "tpm": 480000}:
         raise ValueError("V2 pacing differs from the displayed matched experiment")
 
+    columns = [
+        ("V1 / BASELINE", "GPT-5.4 mini", model1["model_version"]),
+        ("V2 / COMPLEXITY", "GPT-5.4 mini", model2["version"]),
+        ("V3 / GROUPED REQUESTS", "GPT-5 mini", model3["model_version"]),
+        ("V4 / MATCHED QUOTA", "GPT-5 mini", "2025-08-07"),
+        ("V5 / SMART ROUTING", "GPT-5 mini", "2025-08-07"),
+    ]
+
     def detail(main: str, explanation: str = "") -> str:
         return main + (f'<span class="cell-detail">{explanation}</span>' if explanation else "")
 
@@ -801,14 +809,19 @@ def compare_versions(
         if len(cells) != 3:
             raise ValueError("Historical comparison rows must contain three version values")
         return (
-            f'<tr><th scope="row">{html.escape(label)}</th>'
-            + "".join(f"<td>{cell}</td>" for cell in [*cells, v4_cells[label], v5_cells[label]])
+            f'<tr role="row"><th scope="row" role="rowheader">{html.escape(label)}</th>'
+            + "".join(
+                f'<td role="cell"><span class="comparison-version" aria-hidden="true">{html.escape(column[0])}</span>{cell}</td>'
+                for column, cell in zip(
+                    columns, [*cells, v4_cells[label], v5_cells[label]], strict=True
+                )
+            )
             + "</tr>"
         )
 
     def group(title: str) -> str:
         return (
-            f'<tr class="group-row"><td colspan="6"><strong>{html.escape(title)}</strong></td></tr>'
+            f'<tr class="group-row" role="row"><td colspan="6" role="cell"><strong>{html.escape(title)}</strong></td></tr>'
         )
 
     def stage_lines(rows: list[dict[str, Any]], field: str, formatter: Any) -> str:
@@ -1309,12 +1322,12 @@ def compare_versions(
         ]
     )
     head = (
-        '<tr><th scope="col">Variable</th>'
-        f'<th scope="col"><span>V1 / BASELINE</span>GPT-5.4 mini<small>{html.escape(model1["model_version"])}</small></th>'
-        f'<th scope="col"><span>V2 / COMPLEXITY</span>GPT-5.4 mini<small>{html.escape(model2["version"])}</small></th>'
-        f'<th scope="col"><span>V3 / GROUPED REQUESTS</span>GPT-5 mini<small>{html.escape(model3["model_version"])}</small></th>'
-        '<th scope="col"><span>V4 / MATCHED QUOTA</span>GPT-5 mini<small>2025-08-07</small></th>'
-        '<th scope="col"><span>V5 / SMART ROUTING</span>GPT-5 mini<small>2025-08-07</small></th></tr>'
+        '<tr role="row"><th scope="col" role="columnheader">Variable</th>'
+        + "".join(
+            f'<th scope="col" role="columnheader"><span>{html.escape(label)}</span>{html.escape(model)}<small>{html.escape(version)}</small></th>'
+            for label, model, version in columns
+        )
+        + "</tr>"
     )
     seq, grouped = v3_order
     story = (

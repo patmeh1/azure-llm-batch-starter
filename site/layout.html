@@ -86,6 +86,7 @@ html[data-theme="dark"] {
     pre { margin: 0; overflow-x: auto; padding: 1.5rem; border: 1px solid var(--cp-border); background: var(--cp-surface-soft); border-radius: .625rem; line-height: 1.75; }
     pre code { overflow-wrap: normal; }
     .wrap { max-width: 1200px; margin-inline: auto; padding-inline: 1.5rem; }
+    body[data-page="comparison.html"] .wrap { max-width: 1600px; }
     .skip { position: absolute; top: -5rem; left: 1rem; padding: .75rem 1rem; z-index: 20; background: var(--cp-surface); border: 2px solid var(--cp-accent); }
     .skip:focus { top: .75rem; }
     .site-header { position: sticky; top: 0; z-index: 10; background: var(--cp-bg-elevated); border-bottom: 1px solid var(--cp-border); }
@@ -167,18 +168,20 @@ html[data-theme="dark"] {
     thead th { background: var(--cp-surface-soft); color: var(--cp-text-muted); font-size: .75rem; font-weight: 650; letter-spacing: .03em; }
     tbody th { font-weight: 600; min-width: 10rem; }
     tbody tr:last-child > * { border-bottom: 0; }
-    .comparison-table { min-width: 1440px; table-layout: fixed; }
+    .comparison-table { table-layout: fixed; overflow-wrap: anywhere; }
+    .comparison-table th, .comparison-table td { padding: .85rem .75rem; }
     .comparison-table thead th { width: 17%; font-size: 1rem; color: var(--cp-text); vertical-align: top; }
-    .comparison-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--cp-surface); }
-    .comparison-table thead th:first-child { width: 15%; z-index: 2; background: var(--cp-surface-soft); }
+    .comparison-table thead th:first-child { width: 15%; }
     .comparison-table thead span { display: block; font-size: .7rem; font-weight: 700; color: var(--cp-accent); letter-spacing: .06em; margin-bottom: .35rem; }
     .comparison-table thead small { display: block; font-size: .8rem; color: var(--cp-text-soft); margin-top: .25rem; font-weight: 500; }
     .comparison-table td { vertical-align: top; }
+    .comparison-table .tag { max-width: 100%; white-space: normal; }
     .comparison-table tbody th { min-width: 0; vertical-align: top; font-size: .85rem; }
     .comparison-table .group-row td { background: var(--cp-bg-elevated); color: var(--cp-accent); letter-spacing: .07em; font-size: .7rem; padding-block: .6rem; }
     .comparison-table .cell-detail { display: block; margin-top: .35rem; font-size: .8rem; color: var(--cp-text-muted); }
     .comparison-table .cell-lines { list-style: none; padding: 0; margin: 0; }
     .comparison-table .cell-lines li + li { margin-top: .4rem; }
+    .comparison-version { display: none; }
     .evidence-reference { margin-top: 1.5rem; }
     .page-next { display: flex; justify-content: space-between; gap: 1.5rem; padding-block: 2rem; border-top: 1px solid var(--cp-border); }
     .page-next a { font-weight: 600; }
@@ -225,6 +228,12 @@ html[data-theme="dark"] {
     html[data-theme="dark"] .topnav a:hover { color: var(--cp-accent); }
     html[data-theme="dark"] .topnav a[aria-current="page"] { color: var(--cp-accent); }
     @media (max-width: 960px) {
+      .comparison-table, .comparison-table caption, .comparison-table tbody, .comparison-table tr, .comparison-table tbody th, .comparison-table td { display: block; width: 100%; }
+      .comparison-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+      .comparison-table tbody th { background: var(--cp-surface-soft); }
+      .comparison-table tbody tr { border-bottom: 1px solid var(--cp-border-strong); }
+      .comparison-table tbody tr:last-child { border-bottom: 0; }
+      .comparison-version { display: block; margin-bottom: .5rem; color: var(--cp-accent); font-size: .75rem; font-weight: 700; letter-spacing: .06em; }
       .hero { grid-template-columns: 1fr; gap: 2rem; padding-top: 3rem; }
       .hero-panel { max-width: none; }
       .hero-panel h2 { margin-bottom: 1rem; }
@@ -236,7 +245,6 @@ html[data-theme="dark"] {
     }
     @media (max-width: 640px) {
       html { scroll-padding-top: 1rem; }
-      .comparison-table th:first-child { position: static; }
       .wrap { padding-inline: 1rem; }
       .topbar { flex-wrap: wrap; gap: .75rem; padding-block: .75rem; }
       .site-header { position: static; }

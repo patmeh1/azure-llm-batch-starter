@@ -26,6 +26,12 @@ record counts, quota, pacing, output ceilings, execution modes, service-Batch
 availability, timing, 429s, quality, and token-cost estimates. It does not merge
 different workloads into a speed leaderboard.
 
+All five version columns fit the available desktop width without horizontal
+scrolling. At viewport widths of 960px or less, each variable stacks its five
+version values with visible version labels. The overview summary uses the same
+responsive layout. No columns, metrics, or caveats are hidden, and the layout
+works without JavaScript.
+
 Content remains customer-neutral and synthetic. Old shared root links such
 as `/#v2` redirect to their dedicated pages when JavaScript is available.
 
@@ -94,7 +100,8 @@ Use the existing Playwright setup described in [testing](testing.md). On
 Windows with Edge installed, set `$env:BROWSER_CHANNEL='msedge'`. Tests cover
 evidence values, explicit interrupted/pending states, terminal-state rendering,
 escaping/privacy guards, cross-page fragments, each tab's direct route and
-active state, reload/back behavior, legacy hash links, mobile tables, themes
+active state, reload/back behavior, legacy hash links, all-five-column desktop
+visibility, labeled mobile comparisons without horizontal overflow, themes
 across navigation, downloads, clipboard failures, and no-JavaScript access.
 
 ## Publishing
